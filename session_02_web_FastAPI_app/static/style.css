@@ -1,0 +1,41 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.container {
+    display: flex;
+    width: 80%;
+    border: 1px solid #ccc;
+}
+
+.left-box, .right-box {
+    flex: 1;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.icon-row {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 20px;
+}
+
+.icon-row img {
+    width: 50px;
+    cursor: pointer;
+}
+
+.upload-area {
+    border: 2px dashed #ccc;
+    padding: 20px;
+    text-align: center;
+}
+
+.right-box {
+    border-left: 1px solid #ccc;
+}
