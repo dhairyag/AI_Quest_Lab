@@ -1,1 +1,5 @@
 __init__
+__pycache__
+.DS_Store
+venv
+*.zip
