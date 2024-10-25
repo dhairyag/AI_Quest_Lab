@@ -2,7 +2,9 @@
 
 ## Project Overview
 
-This project is a web application that allows users to select animal icons and upload files. It uses FastAPI as the backend and HTML/CSS/JavaScript for the frontend.
+This project is a web application that allows users to select animal icons and upload files. It uses FastAPI as the backend and HTML/CSS/JavaScript for the frontend. The application is designed to process images and files, and display the results in the frontend.
+
+GenAI coding tool used: Cursor
 
 ## Table of Contents
 
