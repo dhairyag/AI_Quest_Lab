@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+python-multipart
+nltk
+torch
+librosa
+opencv-python
+jinja2
+
