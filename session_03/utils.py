@@ -19,7 +19,7 @@ def load_data(file_content: bytes, data_type: str) -> Any:
 def show_sample(data, data_type: str) -> str:
     """Returns a sample of data for display (consider data type)."""
     if data_type == "text":
-        return data[:100] + "..." if len(data) > 100 else data
+        return data[:500] + "..." if len(data) > 100 else data
     elif data_type == "audio":
         return f"Audio length: {len(data[0])} samples, Sample rate: {data[1]}"
     elif data_type == "image":

@@ -5,41 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Data Processing App</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
-    <style>
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .flex-container {
-            display: flex;
-            gap: 20px;
-        }
-        .column {
-            flex: 1;
-        }
-        .data-box {
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            padding: 15px;
-            margin-bottom: 20px;
-            height: 300px;
-            overflow-y: auto;
-        }
-        .data-box h3 {
-            margin-top: 0;
-        }
-        #originalData, #processedData {
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-    </style>
 </head>
 <body>
     <div class="container">
         <h1>Data Processing App</h1>
-        <div class="flex-container">
-            <div class="column">
+        <div class="main-content">
+            <div class="sidebar">
                 <div class="upload-section">
                     <h2>Upload Data</h2>
                     <form id="upload-form">
@@ -66,18 +37,18 @@
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="flex-container">
-            <div class="column">
+            <div class="data-display">
                 <div class="data-box">
                     <h3>Original Data</h3>
-                    <div id="originalData"></div>
+                    <div class="data-content">
+                        <div id="originalData"></div>
+                    </div>
                 </div>
-            </div>
-            <div class="column">
                 <div class="data-box">
                     <h3>Processed Result</h3>
-                    <div id="processedData"></div>
+                    <div class="data-content">
+                        <div id="processedData"></div>
+                    </div>
                 </div>
             </div>
         </div>

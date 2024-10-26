@@ -3,20 +3,43 @@ body {
     line-height: 1.6;
     margin: 0;
     padding: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 .container {
-    width: 80%;
-    margin: auto;
-    overflow: hidden;
+    flex: 1;
+    max-width: 1200px;
+    margin: 0 auto;
     padding: 20px;
+    display: flex;
+    flex-direction: column;
 }
 
 h1, h2, h3 {
     color: #333;
 }
 
-.upload-section, .processing-section, .results-section {
+.main-content {
+    display: flex;
+    flex: 1;
+    gap: 20px;
+}
+
+.sidebar {
+    flex: 0 0 300px;
+    overflow-y: auto;
+}
+
+.data-display {
+    flex: 1;
+    display: flex;
+    gap: 20px;
+    overflow-x: hidden; /* Prevent horizontal scrolling */
+}
+
+.upload-section, .processing-section {
     background: #f4f4f4;
     margin-bottom: 20px;
     padding: 20px;
@@ -41,10 +64,43 @@ button:hover {
     background: #555;
 }
 
-#results {
-    background: #fff;
-    padding: 10px;
-    border: 1px solid #ddd;
+.data-box {
+    flex: 1;
+    border: 1px solid #ccc;
     border-radius: 5px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 150px);
+    min-width: 0; /* This ensures the flex item can shrink below its minimum content size */
+    max-width: 50%; /* Limit the width of each box to 50% of its container */
+}
+
+.data-box h3 {
+    margin-top: 0;
+    position: sticky;
+    top: 0;
+    background-color: white;
+    padding: 5px 0;
+    margin-bottom: 10px;
+}
+
+.data-content {
+    flex-grow: 1;
+    overflow-y: auto;
+    overflow-x: hidden; /* Prevent horizontal scrolling */
+    min-height: 0; /* This allows the content to scroll within the flex container */
+}
+
+#originalData, #processedData {
     white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: break-word; /* Ensure long words are broken and wrapped */
+}
+
+pre {
+    margin: 0;
+    font-family: monospace;
+    white-space: pre-wrap; /* Allow wrapping for pre elements */
+    word-break: break-word; /* Break words if they're too long */
 }
