@@ -45,6 +45,7 @@
                 </div>
                 <div class="data-box">
                     <h3>Processed Result</h3>
+                    <div id="appliedEffect" class="applied-effect"></div>
                     <div class="data-content">
                         <div id="processedData"></div>
                     </div>
@@ -185,7 +186,8 @@
                         original: uploadedData.sample.original,
                         processed: result.sample.processed
                     },
-                    data_type: dataType
+                    data_type: dataType,
+                    appliedEffect: `${isPreprocessing ? 'Preprocessing' : 'Augmentation'} - ${selectedOption.value}`
                 });
             } catch (error) {
                 console.error('Error:', error);
@@ -195,6 +197,7 @@
         function displayResult(data) {
             const originalDataDiv = document.getElementById('originalData');
             const processedDataDiv = document.getElementById('processedData');
+            const appliedEffectDiv = document.getElementById('appliedEffect');
 
             // Display original data
             if (data.sample && data.sample.original) {
@@ -204,8 +207,10 @@
             // Display processed data
             if (data.sample && data.sample.processed) {
                 displayData(processedDataDiv, data.sample.processed, data.data_type);
+                appliedEffectDiv.textContent = `[Applied: ${data.appliedEffect}]`;
             } else {
                 processedDataDiv.textContent = "No processing applied yet.";
+                appliedEffectDiv.textContent = "";
             }
         }
 

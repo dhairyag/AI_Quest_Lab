@@ -106,3 +106,10 @@ pre {
     white-space: pre-wrap;
     word-break: break-word;
 }
+
+.applied-effect {
+    font-size: 0.9em;
+    color: #666;
+    margin-bottom: 10px;
+    font-style: italic;
+}
