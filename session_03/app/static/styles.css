@@ -28,7 +28,7 @@ h1, h2, h3 {
 }
 
 .sidebar {
-    flex: 0 0 300px;
+    flex: 0 0 300px; /* Fixed width for sidebar */
     overflow-y: auto;
 }
 
@@ -71,9 +71,9 @@ button:hover {
     padding: 15px;
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 150px);
-    min-width: 0; /* This ensures the flex item can shrink below its minimum content size */
-    max-width: 50%; /* Limit the width of each box to 50% of its container */
+    height: 400px; /* Fixed height */
+    min-width: 300px; /* Minimum width */
+    max-width: calc(50% - 10px); /* Maximum width (50% of container minus half of the gap) */
 }
 
 .data-box h3 {
@@ -96,6 +96,7 @@ button:hover {
     white-space: pre-wrap;
     word-break: break-word;
     overflow-wrap: break-word; /* Ensure long words are broken and wrapped */
+    min-height: 100%; /* Ensure the content takes up at least the full height of its container */
 }
 
 pre {
