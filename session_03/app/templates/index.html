@@ -5,40 +5,263 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Data Processing App</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+    <style>
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .flex-container {
+            display: flex;
+            gap: 20px;
+        }
+        .left-column, .right-column {
+            flex: 1;
+        }
+        .data-box {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            min-height: 300px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .data-box h3 {
+            margin-top: 0;
+        }
+        #originalData, #processedData {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <h1>Data Processing App</h1>
-        <div class="upload-section">
-            <h2>Upload Data</h2>
-            <form id="upload-form">
-                <select id="data-type">
-                    <option value="text">Text</option>
-                    <option value="audio">Audio</option>
-                    <option value="image">Image</option>
-                </select>
-                <input type="file" id="file-input">
-                <button type="submit">Upload</button>
-            </form>
-        </div>
-        <div class="processing-section">
-            <h2>Process Data</h2>
-            <div class="preprocessing">
-                <h3>Preprocessing</h3>
-                <div id="preprocessing-options"></div>
-                <button id="preprocess-btn">Preprocess</button>
+        <div class="flex-container">
+            <div class="left-column">
+                <div class="upload-section">
+                    <h2>Upload Data</h2>
+                    <form id="upload-form">
+                        <select id="data-type">
+                            <option value="text">Text</option>
+                            <option value="audio">Audio</option>
+                            <option value="image">Image</option>
+                        </select>
+                        <input type="file" id="file-input">
+                        <button type="submit">Upload</button>
+                    </form>
+                </div>
+                <div class="data-box">
+                    <h3>Original Data</h3>
+                    <div id="originalData"></div>
+                </div>
             </div>
-            <div class="augmentation">
-                <h3>Augmentation</h3>
-                <div id="augmentation-options"></div>
-                <button id="augment-btn">Augment</button>
+            <div class="right-column">
+                <div class="processing-section">
+                    <h2>Process Data</h2>
+                    <div class="preprocessing">
+                        <h3>Preprocessing</h3>
+                        <div id="preprocessing-options"></div>
+                        <button id="preprocess-btn">Preprocess</button>
+                    </div>
+                    <div class="augmentation">
+                        <h3>Augmentation</h3>
+                        <div id="augmentation-options"></div>
+                        <button id="augment-btn">Augment</button>
+                    </div>
+                </div>
+                <div class="data-box">
+                    <h3>Processed Result</h3>
+                    <div id="processedData"></div>
+                </div>
             </div>
-        </div>
-        <div class="results-section">
-            <h2>Results</h2>
-            <pre id="results"></pre>
         </div>
     </div>
     <script src="{{ url_for('static', path='/script.js') }}"></script>
+    <script>
+        let uploadedData = null;
+
+        document.getElementById('upload-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const dataType = document.getElementById('data-type').value;
+            const fileInput = document.getElementById('file-input');
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const response = await fetch(`/upload/${dataType}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                uploadedData = result;
+                displayResult(result);
+                showProcessingOptions(dataType);
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+
+        function showProcessingOptions(dataType) {
+            const preprocessingOptions = document.getElementById('preprocessing-options');
+            const augmentationOptions = document.getElementById('augmentation-options');
+
+            // Clear previous options
+            preprocessingOptions.innerHTML = '';
+            augmentationOptions.innerHTML = '';
+
+            // Add preprocessing options based on data type
+            const preProcessingSteps = getPreprocessingSteps(dataType);
+            preProcessingSteps.forEach(step => {
+                const checkbox = createCheckbox(step, 'preprocessing');
+                preprocessingOptions.appendChild(checkbox);
+            });
+
+            // Add augmentation options based on data type
+            const augmentationTechniques = getAugmentationTechniques(dataType);
+            augmentationTechniques.forEach(technique => {
+                const checkbox = createCheckbox(technique, 'augmentation');
+                augmentationOptions.appendChild(checkbox);
+            });
+
+            // Show processing buttons
+            document.getElementById('preprocess-btn').style.display = 'block';
+            document.getElementById('augment-btn').style.display = 'block';
+        }
+
+        function createCheckbox(label, type) {
+            const div = document.createElement('div');
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `${type}-${label}`;
+            checkbox.name = `${type}-options`;
+            checkbox.value = label;
+
+            const labelElement = document.createElement('label');
+            labelElement.htmlFor = checkbox.id;
+            labelElement.textContent = label;
+
+            div.appendChild(checkbox);
+            div.appendChild(labelElement);
+            return div;
+        }
+
+        function getPreprocessingSteps(dataType) {
+            // Return preprocessing steps based on data type
+            switch (dataType) {
+                case 'text':
+                    return ['Lowercase', 'Remove Punctuation', 'Tokenize'];
+                case 'image':
+                    return ['Resize', 'Normalize', 'Grayscale'];
+                case 'audio':
+                    return ['Normalize', 'Trim Silence', 'Resample'];
+                default:
+                    return [];
+            }
+        }
+
+        function getAugmentationTechniques(dataType) {
+            // Return augmentation techniques based on data type
+            switch (dataType) {
+                case 'text':
+                    return ['Synonym Replacement', 'Random Insertion', 'Random Swap'];
+                case 'image':
+                    return ['Rotate', 'Flip', 'Add Noise'];
+                case 'audio':
+                    return ['Time Stretch', 'Pitch Shift', 'Add Noise'];
+                default:
+                    return [];
+            }
+        }
+
+        document.getElementById('preprocess-btn').addEventListener('click', async () => {
+            if (!uploadedData) return;
+
+            const selectedSteps = Array.from(document.querySelectorAll('input[name="preprocessing-options"]:checked')).map(cb => cb.value);
+            const dataType = uploadedData.data_type;
+
+            try {
+                const response = await fetch(`/preprocess/${dataType}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        data: uploadedData.sample.original,
+                        preprocessing_steps: selectedSteps
+                    }),
+                });
+                const result = await response.json();
+                displayResult(result);
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+
+        document.getElementById('augment-btn').addEventListener('click', async () => {
+            if (!uploadedData) return;
+
+            const selectedTechniques = Array.from(document.querySelectorAll('input[name="augmentation-options"]:checked')).map(cb => cb.value);
+            const dataType = uploadedData.data_type;
+
+            try {
+                const response = await fetch(`/augment/${dataType}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        data: uploadedData.sample.original,
+                        augmentation_techniques: selectedTechniques
+                    }),
+                });
+                const result = await response.json();
+                displayResult(result);
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+
+        function displayResult(data) {
+            const originalDataDiv = document.getElementById('originalData');
+            const processedDataDiv = document.getElementById('processedData');
+
+            // Display original data
+            if (data.sample && data.sample.original) {
+                displayData(originalDataDiv, data.sample.original, data.data_type);
+            }
+
+            // Display processed data
+            if (data.sample && data.sample.processed) {
+                displayData(processedDataDiv, data.sample.processed, data.data_type);
+            } else {
+                processedDataDiv.textContent = "No processing applied yet.";
+            }
+        }
+
+        function displayData(container, data, dataType) {
+            switch (dataType) {
+                case 'text':
+                    container.textContent = data;
+                    break;
+                case 'image':
+                    const img = document.createElement('img');
+                    img.src = `data:image/png;base64,${data}`;
+                    img.className = 'img-fluid';
+                    container.appendChild(img);
+                    break;
+                case 'audio':
+                    const audio = document.createElement('audio');
+                    audio.controls = true;
+                    audio.src = `data:audio/wav;base64,${data}`;
+                    container.appendChild(audio);
+                    break;
+                default:
+                    container.textContent = JSON.stringify(data, null, 2);
+            }
+        }
+    </script>
 </body>
 </html>

@@ -35,7 +35,14 @@ async def upload_data(data_type: str, file: UploadFile = File(...)):
     try:
         file_content = await file.read()
         data = load_data(file_content, data_type)
-        return {"message": "Data uploaded successfully!", "sample": show_sample(data, data_type)}
+        return {
+            "message": "Data uploaded successfully!",
+            "sample": {
+                "original": show_sample(data, data_type),
+                "processed": None  # No processing at this stage
+            },
+            "data_type": data_type
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -47,10 +54,18 @@ async def preprocess_data(data_type: str, data: Dict[str, Any],
     Applies preprocessing steps to the data.
     """
     try:
-        processed_data = data["data"]
+        original_data = data["data"]
+        processed_data = original_data.copy()
         for step in preprocessing_steps or []:
             processed_data = apply_preprocessing(processed_data, data_type, step)
-        return {"message": "Data preprocessed successfully!", "sample": show_sample(processed_data, data_type)}
+        return {
+            "message": "Data preprocessed successfully!",
+            "sample": {
+                "original": show_sample(original_data, data_type),
+                "processed": show_sample(processed_data, data_type)
+            },
+            "data_type": data_type
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -62,9 +77,17 @@ async def augment_data(data_type: str, data: Dict[str, Any],
     Applies data augmentation techniques.
     """
     try:
-        augmented_data = data["data"]
+        original_data = data["data"]
+        augmented_data = original_data.copy()
         for technique in augmentation_techniques or []:
             augmented_data = apply_augmentation(augmented_data, data_type, technique)
-        return {"message": "Data augmented successfully!", "sample": show_sample(augmented_data, data_type)}
+        return {
+            "message": "Data augmented successfully!",
+            "sample": {
+                "original": show_sample(original_data, data_type),
+                "processed": show_sample(augmented_data, data_type)
+            },
+            "data_type": data_type
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
