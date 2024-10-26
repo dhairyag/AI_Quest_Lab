@@ -28,13 +28,12 @@
                     <div class="preprocessing">
                         <h3>Preprocessing</h3>
                         <div id="preprocessing-options"></div>
-                        <button id="preprocess-btn">Preprocess</button>
                     </div>
                     <div class="augmentation">
                         <h3>Augmentation</h3>
                         <div id="augmentation-options"></div>
-                        <button id="augment-btn">Augment</button>
                     </div>
+                    <button id="apply-btn">Apply</button>
                 </div>
             </div>
             <div class="data-display">
@@ -88,28 +87,27 @@
             // Add preprocessing options based on data type
             const preProcessingSteps = getPreprocessingSteps(dataType);
             preProcessingSteps.forEach(step => {
-                const checkbox = createCheckbox(step, 'preprocessing');
-                preprocessingOptions.appendChild(checkbox);
+                const radio = createRadio(step, 'processing');
+                preprocessingOptions.appendChild(radio);
             });
 
             // Add augmentation options based on data type
             const augmentationTechniques = getAugmentationTechniques(dataType);
             augmentationTechniques.forEach(technique => {
-                const checkbox = createCheckbox(technique, 'augmentation');
-                augmentationOptions.appendChild(checkbox);
+                const radio = createRadio(technique, 'processing');
+                augmentationOptions.appendChild(radio);
             });
 
-            // Show processing buttons
-            document.getElementById('preprocess-btn').style.display = 'inline-block';
-            document.getElementById('augment-btn').style.display = 'inline-block';
+            // Show apply button
+            document.getElementById('apply-btn').style.display = 'inline-block';
         }
 
-        function createCheckbox(label, type) {
+        function createRadio(label, name) {
             const div = document.createElement('div');
             const radio = document.createElement('input');
             radio.type = 'radio';
-            radio.id = `${type}-${label}`;
-            radio.name = `${type}-options`;
+            radio.id = `${name}-${label}`;
+            radio.name = name;
             radio.value = label;
 
             const labelElement = document.createElement('label');
@@ -149,25 +147,27 @@
             }
         }
 
-        document.getElementById('preprocess-btn').addEventListener('click', async () => {
+        document.getElementById('apply-btn').addEventListener('click', async () => {
             if (!uploadedData) return;
 
-            const selectedStep = document.querySelector('input[name="preprocessing-options"]:checked');
-            if (!selectedStep) {
-                console.error('No preprocessing step selected');
+            const selectedOption = document.querySelector('input[name="processing"]:checked');
+            if (!selectedOption) {
+                console.error('No processing option selected');
                 return;
             }
             const dataType = uploadedData.data_type;
+            const isPreprocessing = getPreprocessingSteps(dataType).includes(selectedOption.value);
 
             const requestData = {
                 data: uploadedData.sample.original,
-                preprocessing_steps: [selectedStep.value]
+                [isPreprocessing ? 'preprocessing_steps' : 'augmentation_techniques']: [selectedOption.value]
             };
 
-            console.log('Preprocessing request data:', requestData);
+            console.log('Processing request data:', requestData);
 
             try {
-                const response = await fetch(`/preprocess/${dataType}`, {
+                const endpoint = isPreprocessing ? 'preprocess' : 'augment';
+                const response = await fetch(`/${endpoint}/${dataType}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -179,50 +179,7 @@
                     throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
                 }
                 const result = await response.json();
-                console.log('Preprocessing response:', result);
-                displayResult({
-                    sample: {
-                        original: uploadedData.sample.original,
-                        processed: result.sample.processed
-                    },
-                    data_type: dataType
-                });
-            } catch (error) {
-                console.error('Error:', error);
-            }
-        });
-
-        document.getElementById('augment-btn').addEventListener('click', async () => {
-            if (!uploadedData) return;
-
-            const selectedTechnique = document.querySelector('input[name="augmentation-options"]:checked');
-            if (!selectedTechnique) {
-                console.error('No augmentation technique selected');
-                return;
-            }
-            const dataType = uploadedData.data_type;
-
-            const requestData = {
-                data: uploadedData.sample.original,
-                augmentation_techniques: [selectedTechnique.value]
-            };
-
-            console.log('Augmentation request data:', requestData);
-
-            try {
-                const response = await fetch(`/augment/${dataType}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(requestData),
-                });
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-                }
-                const result = await response.json();
-                console.log('Augmentation response:', result);
+                console.log('Processing response:', result);
                 displayResult({
                     sample: {
                         original: uploadedData.sample.original,
