@@ -10,11 +10,13 @@ body {
 
 .container {
     flex: 1;
-    max-width: 1200px;
+    width: 100%;
+    max-width: 1400px;
     margin: 0 auto;
     padding: 20px;
     display: flex;
     flex-direction: column;
+    box-sizing: border-box;
 }
 
 h1, h2, h3 {
@@ -24,19 +26,19 @@ h1, h2, h3 {
 .main-content {
     display: flex;
     flex: 1;
-    gap: 20px;
+    gap: 2%;
 }
 
 .sidebar {
-    flex: 0 0 300px; /* Fixed width for sidebar */
+    flex: 0 0 25%;
     overflow-y: auto;
 }
 
 .data-display {
-    flex: 1;
+    flex: 0 0 73%;
     display: flex;
-    gap: 20px;
-    overflow-x: hidden; /* Prevent horizontal scrolling */
+    gap: 2%;
+    overflow-x: hidden;
 }
 
 .upload-section, .processing-section {
@@ -71,9 +73,9 @@ button:hover {
     padding: 15px;
     display: flex;
     flex-direction: column;
-    height: 400px; /* Fixed height */
-    min-width: 300px; /* Minimum width */
-    max-width: calc(50% - 10px); /* Maximum width (50% of container minus half of the gap) */
+    height: 60vh;
+    min-height: 300px;
+    box-sizing: border-box;
 }
 
 .data-box h3 {
@@ -88,20 +90,19 @@ button:hover {
 .data-content {
     flex-grow: 1;
     overflow-y: auto;
-    overflow-x: hidden; /* Prevent horizontal scrolling */
-    min-height: 0; /* This allows the content to scroll within the flex container */
+    overflow-x: hidden;
 }
 
 #originalData, #processedData {
     white-space: pre-wrap;
     word-break: break-word;
-    overflow-wrap: break-word; /* Ensure long words are broken and wrapped */
-    min-height: 100%; /* Ensure the content takes up at least the full height of its container */
+    overflow-wrap: break-word;
+    height: 100%;
 }
 
 pre {
     margin: 0;
     font-family: monospace;
-    white-space: pre-wrap; /* Allow wrapping for pre elements */
-    word-break: break-word; /* Break words if they're too long */
+    white-space: pre-wrap;
+    word-break: break-word;
 }
