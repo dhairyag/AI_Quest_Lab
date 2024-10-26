@@ -15,7 +15,7 @@
             display: flex;
             gap: 20px;
         }
-        .left-column, .right-column {
+        .column {
             flex: 1;
         }
         .data-box {
@@ -23,8 +23,7 @@
             border-radius: 5px;
             padding: 15px;
             margin-bottom: 20px;
-            min-height: 300px;
-            max-height: 500px;
+            height: 300px;
             overflow-y: auto;
         }
         .data-box h3 {
@@ -40,7 +39,7 @@
     <div class="container">
         <h1>Data Processing App</h1>
         <div class="flex-container">
-            <div class="left-column">
+            <div class="column">
                 <div class="upload-section">
                     <h2>Upload Data</h2>
                     <form id="upload-form">
@@ -53,12 +52,6 @@
                         <button type="submit">Upload</button>
                     </form>
                 </div>
-                <div class="data-box">
-                    <h3>Original Data</h3>
-                    <div id="originalData"></div>
-                </div>
-            </div>
-            <div class="right-column">
                 <div class="processing-section">
                     <h2>Process Data</h2>
                     <div class="preprocessing">
@@ -72,6 +65,16 @@
                         <button id="augment-btn">Augment</button>
                     </div>
                 </div>
+            </div>
+        </div>
+        <div class="flex-container">
+            <div class="column">
+                <div class="data-box">
+                    <h3>Original Data</h3>
+                    <div id="originalData"></div>
+                </div>
+            </div>
+            <div class="column">
                 <div class="data-box">
                     <h3>Processed Result</h3>
                     <div id="processedData"></div>
@@ -79,7 +82,6 @@
             </div>
         </div>
     </div>
-    <script src="{{ url_for('static', path='/script.js') }}"></script>
     <script>
         let uploadedData = null;
 
@@ -127,8 +129,8 @@
             });
 
             // Show processing buttons
-            document.getElementById('preprocess-btn').style.display = 'block';
-            document.getElementById('augment-btn').style.display = 'block';
+            document.getElementById('preprocess-btn').style.display = 'inline-block';
+            document.getElementById('augment-btn').style.display = 'inline-block';
         }
 
         function createCheckbox(label, type) {
@@ -182,19 +184,34 @@
             const selectedSteps = Array.from(document.querySelectorAll('input[name="preprocessing-options"]:checked')).map(cb => cb.value);
             const dataType = uploadedData.data_type;
 
+            const requestData = {
+                data: uploadedData.sample.original,
+                preprocessing_steps: selectedSteps
+            };
+
+            console.log('Preprocessing request data:', requestData);
+
             try {
                 const response = await fetch(`/preprocess/${dataType}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        data: uploadedData.sample.original,
-                        preprocessing_steps: selectedSteps
-                    }),
+                    body: JSON.stringify(requestData),
                 });
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+                }
                 const result = await response.json();
-                displayResult(result);
+                console.log('Preprocessing response:', result);
+                displayResult({
+                    sample: {
+                        original: uploadedData.sample.original,
+                        processed: result.sample.processed
+                    },
+                    data_type: dataType
+                });
             } catch (error) {
                 console.error('Error:', error);
             }
@@ -206,19 +223,34 @@
             const selectedTechniques = Array.from(document.querySelectorAll('input[name="augmentation-options"]:checked')).map(cb => cb.value);
             const dataType = uploadedData.data_type;
 
+            const requestData = {
+                data: uploadedData.sample.original,
+                augmentation_techniques: selectedTechniques
+            };
+
+            console.log('Augmentation request data:', requestData);
+
             try {
                 const response = await fetch(`/augment/${dataType}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        data: uploadedData.sample.original,
-                        augmentation_techniques: selectedTechniques
-                    }),
+                    body: JSON.stringify(requestData),
                 });
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+                }
                 const result = await response.json();
-                displayResult(result);
+                console.log('Augmentation response:', result);
+                displayResult({
+                    sample: {
+                        original: uploadedData.sample.original,
+                        processed: result.sample.processed
+                    },
+                    data_type: dataType
+                });
             } catch (error) {
                 console.error('Error:', error);
             }
@@ -242,9 +274,12 @@
         }
 
         function displayData(container, data, dataType) {
+            container.innerHTML = ''; // Clear previous content
             switch (dataType) {
                 case 'text':
-                    container.textContent = data;
+                    const pre = document.createElement('pre');
+                    pre.textContent = data;
+                    container.appendChild(pre);
                     break;
                 case 'image':
                     const img = document.createElement('img');

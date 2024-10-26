@@ -6,6 +6,11 @@ from preprocessing import apply_preprocessing
 from augmentation import apply_augmentation
 from utils import load_data, show_sample
 import json
+import logging
+from pydantic import BaseModel, Field
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -46,48 +51,100 @@ async def upload_data(data_type: str, file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+class PreprocessRequest(BaseModel):
+    data: str
+    preprocessing_steps: List[str] = Field(default_factory=list)
+
+class AugmentRequest(BaseModel):
+    data: str
+    augmentation_techniques: List[str] = Field(default_factory=list)
+
 # Preprocessing endpoint
 @app.post("/preprocess/{data_type}")
-async def preprocess_data(data_type: str, data: Dict[str, Any], 
-                          preprocessing_steps: Optional[List[str]] = None):
+async def preprocess_data(data_type: str, request: PreprocessRequest):
     """
     Applies preprocessing steps to the data.
     """
     try:
-        original_data = data["data"]
-        processed_data = original_data.copy()
-        for step in preprocessing_steps or []:
-            processed_data = apply_preprocessing(processed_data, data_type, step)
+        logger.info(f"Received preprocess request for {data_type}")
+        logger.info(f"Data: {request.data[:100]}...")  # Log first 100 characters of data
+        logger.info(f"Preprocessing steps: {request.preprocessing_steps}")
+        
+        processed_data = request.data
+        for step in request.preprocessing_steps:
+            try:
+                processed_data = apply_preprocessing(processed_data, data_type, step)
+            except ValueError as e:
+                logger.error(f"Error in preprocessing step '{step}': {str(e)}")
+                raise HTTPException(status_code=400, detail=f"Error in preprocessing step '{step}': {str(e)}")
         return {
             "message": "Data preprocessed successfully!",
             "sample": {
-                "original": show_sample(original_data, data_type),
                 "processed": show_sample(processed_data, data_type)
             },
             "data_type": data_type
         }
     except Exception as e:
+        logger.error(f"Error in preprocessing: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # Augmentation endpoint
 @app.post("/augment/{data_type}")
-async def augment_data(data_type: str, data: Dict[str, Any],
-                       augmentation_techniques: Optional[List[str]] = None):
+async def augment_data(data_type: str, request: AugmentRequest):
     """
     Applies data augmentation techniques.
     """
     try:
-        original_data = data["data"]
-        augmented_data = original_data.copy()
-        for technique in augmentation_techniques or []:
-            augmented_data = apply_augmentation(augmented_data, data_type, technique)
+        logger.info(f"Received augment request for {data_type}")
+        logger.info(f"Data: {request.data[:100]}...")  # Log first 100 characters of data
+        logger.info(f"Augmentation techniques: {request.augmentation_techniques}")
+        
+        augmented_data = request.data
+        for technique in request.augmentation_techniques:
+            try:
+                augmented_data = apply_augmentation(augmented_data, data_type, technique)
+            except ValueError as e:
+                logger.error(f"Error in augmentation technique '{technique}': {str(e)}")
+                raise HTTPException(status_code=400, detail=f"Error in augmentation technique '{technique}': {str(e)}")
         return {
             "message": "Data augmented successfully!",
             "sample": {
-                "original": show_sample(original_data, data_type),
                 "processed": show_sample(augmented_data, data_type)
             },
             "data_type": data_type
         }
     except Exception as e:
+        logger.error(f"Error in augmentation: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+def apply_preprocessing(data: str, data_type: str, step: str) -> str:
+    if data_type == 'text':
+        if step == 'Lowercase':
+            return data.lower()
+        elif step == 'Remove Punctuation':
+            import string
+            return data.translate(str.maketrans('', '', string.punctuation))
+        elif step == 'Tokenize':
+            return ' '.join(data.split())
+    # Add implementations for other data types here
+    raise ValueError(f"Unsupported preprocessing step for {data_type}: {step}")
+
+def apply_augmentation(data: str, data_type: str, technique: str) -> str:
+    if data_type == 'text':
+        if technique == 'Synonym Replacement':
+            # Simple implementation: replace 'good' with 'great'
+            return data.replace('good', 'great')
+        elif technique == 'Random Insertion':
+            # Simple implementation: insert 'very' before 'good'
+            return data.replace('good', 'very good')
+        elif technique == 'Random Swap':
+            # Simple implementation: swap 'is' and 'are' if both exist
+            words = data.split()
+            if 'is' in words and 'are' in words:
+                is_index = words.index('is')
+                are_index = words.index('are')
+                words[is_index], words[are_index] = words[are_index], words[is_index]
+                return ' '.join(words)
+            return data
+    # Add implementations for other data types here
+    raise ValueError(f"Unsupported augmentation technique for {data_type}: {technique}")
