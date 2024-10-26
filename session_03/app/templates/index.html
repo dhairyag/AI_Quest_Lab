@@ -106,17 +106,17 @@
 
         function createCheckbox(label, type) {
             const div = document.createElement('div');
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.id = `${type}-${label}`;
-            checkbox.name = `${type}-options`;
-            checkbox.value = label;
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.id = `${type}-${label}`;
+            radio.name = `${type}-options`;
+            radio.value = label;
 
             const labelElement = document.createElement('label');
-            labelElement.htmlFor = checkbox.id;
+            labelElement.htmlFor = radio.id;
             labelElement.textContent = label;
 
-            div.appendChild(checkbox);
+            div.appendChild(radio);
             div.appendChild(labelElement);
             return div;
         }
@@ -152,12 +152,16 @@
         document.getElementById('preprocess-btn').addEventListener('click', async () => {
             if (!uploadedData) return;
 
-            const selectedSteps = Array.from(document.querySelectorAll('input[name="preprocessing-options"]:checked')).map(cb => cb.value);
+            const selectedStep = document.querySelector('input[name="preprocessing-options"]:checked');
+            if (!selectedStep) {
+                console.error('No preprocessing step selected');
+                return;
+            }
             const dataType = uploadedData.data_type;
 
             const requestData = {
                 data: uploadedData.sample.original,
-                preprocessing_steps: selectedSteps
+                preprocessing_steps: [selectedStep.value]
             };
 
             console.log('Preprocessing request data:', requestData);
@@ -191,12 +195,16 @@
         document.getElementById('augment-btn').addEventListener('click', async () => {
             if (!uploadedData) return;
 
-            const selectedTechniques = Array.from(document.querySelectorAll('input[name="augmentation-options"]:checked')).map(cb => cb.value);
+            const selectedTechnique = document.querySelector('input[name="augmentation-options"]:checked');
+            if (!selectedTechnique) {
+                console.error('No augmentation technique selected');
+                return;
+            }
             const dataType = uploadedData.data_type;
 
             const requestData = {
                 data: uploadedData.sample.original,
-                augmentation_techniques: selectedTechniques
+                augmentation_techniques: [selectedTechnique.value]
             };
 
             console.log('Augmentation request data:', requestData);
