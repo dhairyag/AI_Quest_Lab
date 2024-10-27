@@ -1,4 +1,3 @@
-import nltk
 import torch
 from typing import List, Union
 
@@ -6,37 +5,64 @@ def apply_preprocessing(data: Union[str, List[str]], data_type: str, step: str) 
     """Applies a preprocessing step to the data."""
     
     if data_type == "text":
-        if step == "tokenize":
+        if step == "Tokenize":
             return tokenize_text(data)
-        elif step == "pad":
-            return pad_sequences(data)
-        elif step == "embed":
-            return embed_text(data)
+        elif step == "Pad":
+            return pad_or_truncate(data)
+        elif step == "Embed":
+            embeddings = embed_tokens(tokenize_text(data))
+            # return string of embeddings
+            return embeddings.tolist()
+        elif step == 'Remove Punctuation':
+            import string
+            return data.translate(str.maketrans('', '', string.punctuation))
         else:
             raise ValueError(f"Unsupported preprocessing step for text: {step}")
     else:
         raise ValueError(f"Preprocessing not implemented for data type: {data_type}")
 
+from transformers import AutoTokenizer, AutoModel
+import torch
+
+# Choose a pre-trained model and tokenizer (e.g., BERT)
+model_name = "bert-base-uncased"
+try:
+    tokenizer = AutoTokenizer.from_pretrained(model_name, local_files_only=True)
+    model = AutoModel.from_pretrained(model_name, local_files_only=True)
+except OSError:
+    # Download and save if not found locally
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModel.from_pretrained(model_name)
+    tokenizer.save_pretrained(model_name)
+    model.save_pretrained(model_name)
+
 def tokenize_text(text: str) -> List[str]:
-    """Tokenizes text data."""
-    return nltk.word_tokenize(text)
+    """Tokenizes text using the chosen tokenizer."""
+    return tokenizer.tokenize(text) 
 
-def pad_sequences(sequences: List[List[str]], max_len: int = 100) -> torch.Tensor:
-    """Pads sequences to a fixed length."""
-    padded_sequences = []
-    for seq in sequences:
-        if len(seq) < max_len:
-            padded_seq = seq + ['<PAD>'] * (max_len - len(seq))
-        else:
-            padded_seq = seq[:max_len]
-        padded_sequences.append(padded_seq)
-    return torch.tensor([[1 if token != '<PAD>' else 0 for token in seq] for seq in padded_sequences])
+def pad_or_truncate(tokens: List[str], max_len: int = 16) -> List[str]:
+    """Pads or truncates a sequence of tokens to a fixed length."""
+    if len(tokens) < max_len:
+        return tokens + [tokenizer.pad_token] * (max_len - len(tokens))
+    else:
+        return tokens[:max_len]
 
-def embed_text(tokens: List[str], embedding_dim: int = 100) -> torch.Tensor:
-    """Maps tokens to vectors using a simple random embedding."""
-    vocab = list(set(token for seq in tokens for token in seq))
-    embedding = torch.randn(len(vocab), embedding_dim)
-    word_to_idx = {word: idx for idx, word in enumerate(vocab)}
-    return torch.stack([torch.mean(torch.stack([embedding[word_to_idx[token]] for token in seq]), dim=0) for seq in tokens])
+def embed_tokens(tokens: List[str]) -> torch.Tensor:
+    """
+    Maps tokens to vectors using the chosen pre-trained model.
+    
+    Returns: 
+        A tensor of shape (max_len, embedding_dim), 
+        where embedding_dim is determined by the model.
+    """
+    # First truncate tokens to BERT's maximum length (512)
+    tokens = tokens[:512]
+    
+    input_ids = tokenizer.convert_tokens_to_ids(tokens)
+    input_ids = torch.tensor([input_ids])  
 
-# Add more preprocessing functions for different data types and techniques
+    with torch.no_grad():
+        outputs = model(input_ids)
+        embeddings = outputs.last_hidden_state
+
+    return embeddings

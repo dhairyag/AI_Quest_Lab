@@ -124,7 +124,7 @@
             // Return preprocessing steps based on data type
             switch (dataType) {
                 case 'text':
-                    return ['Lowercase', 'Remove Punctuation', 'Tokenize'];
+                    return ['Pad', 'Remove Punctuation', 'Tokenize', 'Embed'];
                 case 'image':
                     return ['Resize', 'Normalize', 'Grayscale'];
                 case 'audio':

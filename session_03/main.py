@@ -117,17 +117,6 @@ async def augment_data(data_type: str, request: AugmentRequest):
         logger.error(f"Error in augmentation: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-def apply_preprocessing(data: str, data_type: str, step: str) -> str:
-    if data_type == 'text':
-        if step == 'Lowercase':
-            return data.lower()
-        elif step == 'Remove Punctuation':
-            import string
-            return data.translate(str.maketrans('', '', string.punctuation))
-        elif step == 'Tokenize':
-            return ' '.join(data.split())
-    # Add implementations for other data types here
-    raise ValueError(f"Unsupported preprocessing step for {data_type}: {step}")
 
 def apply_augmentation(data: str, data_type: str, technique: str) -> str:
     if data_type == 'text':
