@@ -116,24 +116,3 @@ async def augment_data(data_type: str, request: AugmentRequest):
     except Exception as e:
         logger.error(f"Error in augmentation: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
-
-def apply_augmentation(data: str, data_type: str, technique: str) -> str:
-    if data_type == 'text':
-        if technique == 'Synonym Replacement':
-            # Simple implementation: replace 'good' with 'great'
-            return data.replace('good', 'great')
-        elif technique == 'Random Insertion':
-            # Simple implementation: insert 'very' before 'good'
-            return data.replace('good', 'very good')
-        elif technique == 'Random Swap':
-            # Simple implementation: swap 'is' and 'are' if both exist
-            words = data.split()
-            if 'is' in words and 'are' in words:
-                is_index = words.index('is')
-                are_index = words.index('are')
-                words[is_index], words[are_index] = words[are_index], words[is_index]
-                return ' '.join(words)
-            return data
-    # Add implementations for other data types here
-    raise ValueError(f"Unsupported augmentation technique for {data_type}: {technique}")

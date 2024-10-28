@@ -6,9 +6,9 @@ def apply_augmentation(data: str, data_type: str, technique: str) -> str:
     """Applies a data augmentation technique."""
     
     if data_type == "text":
-        if technique == "synonym_replacement":
+        if technique == "Synonym Replacement":
             return synonym_replacement(data)
-        elif technique == "random_insertion":
+        elif technique == "Random Insertion":
             return random_insertion(data)
         else:
             raise ValueError(f"Unsupported augmentation technique for text: {technique}")
