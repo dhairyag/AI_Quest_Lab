@@ -8,9 +8,12 @@ def apply_preprocessing(data: Union[str, List[str]], data_type: str, step: str) 
         if step == "Tokenize":
             return tokenize_text(data)
         elif step == "Pad":
-            return pad_or_truncate(data)
+            tokens = tokenize_text(data)
+            return pad_or_truncate(tokens)
         elif step == "Embed":
-            embeddings = embed_tokens(tokenize_text(data))
+            tokens = tokenize_text(data)
+            padded = pad_or_truncate(tokens)
+            embeddings = embed_tokens(padded)
             # return string of embeddings
             return embeddings.tolist()
         elif step == 'Remove Punctuation':
