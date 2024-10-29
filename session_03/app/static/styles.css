@@ -1,5 +1,18 @@
+:root {
+    --primary-color: #2c3e50;
+    --secondary-color: #3498db;
+    --background-color: #f5f6fa;
+    --text-color: #2c3e50;
+    --border-color: #bdc3c7;
+    --success-color: #27ae60;
+    --error-color: #e74c3c;
+    --hover-color: #2980b9;
+}
+
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
     line-height: 1.6;
     margin: 0;
     padding: 0;
@@ -17,10 +30,13 @@ body {
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
+    background-color: white;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
 }
 
 h1, h2, h3 {
-    color: #333;
+    font-family: 'Montserrat', sans-serif;
+    color: var(--primary-color);
 }
 
 .main-content {
@@ -54,16 +70,31 @@ form {
     gap: 10px;
 }
 
-button {
-    background: #333;
-    color: #fff;
+button, .button {
+    background-color: var(--secondary-color);
+    color: white;
     border: none;
     padding: 10px;
     cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    transition: background-color 0.3s ease;
 }
 
-button:hover {
-    background: #555;
+button:hover, .button:hover {
+    background-color: var(--hover-color);
+}
+
+.card {
+    border: 1px solid var(--border-color);
+    background-color: white;
+}
+
+.success-message {
+    color: var(--success-color);
+}
+
+.error-message {
+    color: var(--error-color);
 }
 
 .data-box {
@@ -112,4 +143,15 @@ pre {
     color: #666;
     margin-bottom: 10px;
     font-style: italic;
+}
+
+select, input[type="file"] {
+    border: 1px solid var(--border-color);
+    font-family: 'Poppins', sans-serif;
+}
+
+.sample-display {
+    background-color: white;
+    border: 1px solid var(--border-color);
+    font-family: 'Source Code Pro', monospace;
 }
