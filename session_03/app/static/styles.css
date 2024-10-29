@@ -74,14 +74,46 @@ button, .button {
     background-color: var(--secondary-color);
     color: white;
     border: none;
-    padding: 10px;
+    padding: 12px 20px;
     cursor: pointer;
     font-family: 'Poppins', sans-serif;
-    transition: background-color 0.3s ease;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.9em;
 }
 
 button:hover, .button:hover {
     background-color: var(--hover-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+button:active, .button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#upload-form button[type="submit"], #apply-btn {
+    background: linear-gradient(135deg, var(--secondary-color), var(--hover-color));
+    margin-top: 10px;
+    width: 100%;
+    padding: 14px 20px;
+    font-weight: 600;
+}
+
+#upload-form button[type="submit"]:hover, #apply-btn:hover {
+    background: linear-gradient(135deg, var(--hover-color), var(--secondary-color));
+}
+
+button:disabled, .button:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
 .card {
