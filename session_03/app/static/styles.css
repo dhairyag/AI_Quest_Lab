@@ -130,15 +130,43 @@ button:disabled, .button:disabled {
 }
 
 .data-box {
-    flex: 1;
     border: 1px solid #ccc;
-    border-radius: 5px;
     padding: 15px;
+    margin: 10px;
+    height: 400px;
+    width: 100%;
+    overflow: auto;
+}
+
+.data-content {
+    height: calc(100% - 40px);
+    overflow: auto;
+    position: relative;
+}
+
+.image-wrapper {
     display: flex;
     flex-direction: column;
-    height: 60vh;
-    min-height: 300px;
-    box-sizing: border-box;
+    align-items: center;
+    height: 100%;
+}
+
+.image-wrapper img {
+    max-width: 100%;
+    max-height: calc(100% - 25px);
+    object-fit: contain;
+    margin-bottom: 10px;
+}
+
+.image-dimensions {
+    font-size: 0.9em;
+    color: #666;
+    text-align: center;
+}
+
+.img-fluid {
+    display: block;
+    margin: 0 auto;
 }
 
 .data-box h3 {
@@ -148,12 +176,6 @@ button:disabled, .button:disabled {
     background-color: white;
     padding: 5px 0;
     margin-bottom: 10px;
-}
-
-.data-content {
-    flex-grow: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
 }
 
 #originalData, #processedData {

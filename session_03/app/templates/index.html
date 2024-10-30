@@ -63,20 +63,36 @@
             e.preventDefault();
             const dataType = document.getElementById('data-type').value;
             const fileInput = document.getElementById('file-input');
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-
+            
+            // Add loading state
+            const submitButton = e.target.querySelector('button');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Uploading...';
+            
             try {
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+                
                 const response = await fetch(`/upload/${dataType}`, {
                     method: 'POST',
                     body: formData
                 });
+                
+                if (!response.ok) {
+                    throw new Error(`Upload failed: ${response.statusText}`);
+                }
+                
                 const result = await response.json();
                 uploadedData = result;
                 displayResult(result);
                 showProcessingOptions(dataType);
             } catch (error) {
                 console.error('Error:', error);
+                alert(`Upload failed: ${error.message}`);
+            } finally {
+                // Reset loading state
+                submitButton.disabled = false;
+                submitButton.textContent = 'Upload';
             }
         });
 
@@ -200,8 +216,7 @@
         function displayResult(data) {
             const originalDataDiv = document.getElementById('originalData');
             const processedDataDiv = document.getElementById('processedData');
-            const appliedEffectDiv = document.getElementById('appliedEffect');
-
+            
             // Display original data
             if (data.sample && data.sample.original) {
                 displayData(originalDataDiv, data.sample.original, data.data_type);
@@ -210,10 +225,8 @@
             // Display processed data
             if (data.sample && data.sample.processed) {
                 displayData(processedDataDiv, data.sample.processed, data.data_type);
-                appliedEffectDiv.textContent = `[Applied: ${data.appliedEffect}]`;
             } else {
                 processedDataDiv.textContent = "No processing applied yet.";
-                appliedEffectDiv.textContent = "";
             }
         }
 
@@ -226,10 +239,23 @@
                     container.appendChild(pre);
                     break;
                 case 'image':
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'image-wrapper';
+                    
                     const img = document.createElement('img');
                     img.src = `data:image/png;base64,${data}`;
                     img.className = 'img-fluid';
-                    container.appendChild(img);
+                    
+                    // Add load event to get actual image dimensions
+                    img.onload = function() {
+                        const dimensions = document.createElement('div');
+                        dimensions.className = 'image-dimensions';
+                        dimensions.textContent = `Original Size: ${this.naturalWidth} × ${this.naturalHeight}px`;
+                        wrapper.appendChild(dimensions);
+                    };
+                    
+                    wrapper.appendChild(img);
+                    container.appendChild(wrapper);
                     break;
                 case 'audio':
                     const audio = document.createElement('audio');
@@ -240,6 +266,38 @@
                 default:
                     container.textContent = JSON.stringify(data, null, 2);
             }
+        }
+
+        function displaySample(response) {
+            const textDisplay = document.getElementById('text-sample');
+            const imageDisplay = document.getElementById('image-sample');
+            
+            // Hide both displays initially
+            textDisplay.style.display = 'none';
+            imageDisplay.style.display = 'none';
+
+            if (response.data_type === 'text') {
+                textDisplay.style.display = 'block';
+                document.getElementById('original-text').textContent = response.sample.original;
+                document.getElementById('processed-text').textContent = response.sample.processed || 'Not processed yet';
+            } 
+            else if (response.data_type === 'image') {
+                imageDisplay.style.display = 'block';
+                document.getElementById('original-image').src = `data:image/jpeg;base64,${response.sample.original}`;
+                if (response.sample.processed) {
+                    document.getElementById('processed-image').src = `data:image/jpeg;base64,${response.sample.processed}`;
+                }
+            }
+        }
+
+        // Use this function when handling the upload response
+        async function handleUpload(formData) {
+            const response = await fetch('/upload/text', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            displaySample(data);
         }
     </script>
 </body>
