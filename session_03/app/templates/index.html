@@ -145,7 +145,7 @@
                 case 'text':
                     return ['Pad', 'Remove Punctuation', 'Tokenize', 'Embed'];
                 case 'image':
-                    return ['Resize', 'Normalize', 'Grayscale'];
+                    return ['Resize', 'Normalize', 'Grayscale', 'ML Preprocess'];
                 case 'audio':
                     return ['Normalize', 'Trim Silence', 'Resample'];
                 default:
@@ -250,7 +250,7 @@
                     img.onload = function() {
                         const dimensions = document.createElement('div');
                         dimensions.className = 'image-dimensions';
-                        dimensions.textContent = `Original Size: ${this.naturalWidth} × ${this.naturalHeight}px`;
+                        dimensions.textContent = `Image Size: ${this.naturalWidth} × ${this.naturalHeight}px`;
                         wrapper.appendChild(dimensions);
                     };
                     

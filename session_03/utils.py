@@ -28,7 +28,15 @@ def show_sample(data, data_type: str) -> Any:
         sf.write(buffer, data[0], data[1], format='wav')
         return base64.b64encode(buffer.getvalue()).decode()
     elif data_type == "image":
-        # Convert image to base64 for frontend display
+        # If data is a tensor, convert to numpy array
+        if isinstance(data, torch.Tensor):
+            data = data.permute(1, 2, 0).numpy()
+            
+        # Convert to uint8 range if normalized
+        if data.dtype == np.float32 or data.dtype == np.float64:
+            data = ((data + 1) * 127.5).clip(0, 255).astype(np.uint8)
+            
+        # Convert to base64 for frontend display
         _, buffer = cv2.imencode('.png', data)
         return base64.b64encode(buffer).decode()
     else:
