@@ -1,13 +1,115 @@
 import torch
 from typing import List, Union, Any
-import numpy as np
-import cv2
 import torchvision.transforms as transforms
 from PIL import Image
-import io
-import base64
+import librosa
+from typing import Tuple, Dict
+import json
 
-def apply_preprocessing(data: Union[str, np.ndarray, List[str]], data_type: str, step: str) -> Union[List[str], torch.Tensor, np.ndarray]:
+import base64
+import io
+import numpy as np
+import soundfile as sf
+import librosa
+import cv2  # If using MFCC visualization
+import matplotlib.pyplot as plt
+
+def audio_to_base64(samples: np.ndarray, sample_rate: int) -> str:
+    """
+    Convert audio samples to base64 string.
+    
+    Args:
+        samples: Audio samples
+        sample_rate: Sample rate of the audio
+    
+    Returns:
+        Base64 encoded string of the audio
+    """
+    buffer = io.BytesIO()
+    sf.write(buffer, samples, sample_rate, format='wav')
+    buffer.seek(0)
+    return base64.b64encode(buffer.getvalue()).decode()
+
+def base64_to_audio(audio_base64: str) -> Tuple[np.ndarray, int]:
+    """
+    Convert base64 string to audio samples and sample rate.
+    
+    Args:
+        audio_base64: Base64 encoded audio string
+    
+    Returns:
+        Tuple of (samples, sample_rate)
+    """
+    audio_bytes = base64.b64decode(audio_base64)
+    audio_file = io.BytesIO(audio_bytes)
+    samples, sample_rate = sf.read(audio_file)
+    return samples, sample_rate
+
+def _get_audio_data(data): # Helper function to consolidate data retrieval
+    if isinstance(data, dict) and 'audio_data' in data:
+        samples, sample_rate = base64_to_audio(data['audio_data'])
+    elif isinstance(data, tuple) and len(data) == 2:
+        samples, sample_rate = data
+    else:
+        raise ValueError("Invalid audio data format")
+    return np.array(samples), sample_rate # Ensure numpy array
+
+def normalize_audio(samples: np.ndarray, method="peak") -> np.ndarray:
+    """
+    Normalize audio using peak or RMS normalization.
+    
+    Args:
+        samples: Input audio samples
+        method: Normalization method ('peak' or 'rms')
+    
+    Returns:
+        Normalized audio samples
+    """
+    if method == "peak":
+        max_abs_value = np.abs(samples).max()
+        if max_abs_value > 0:  # Avoid division by zero
+            return samples / max_abs_value
+        return samples
+    elif method == "rms":
+        rms = np.sqrt(np.mean(samples**2))
+        if rms > 0:
+            return samples / rms
+        return samples
+    else:
+        raise ValueError(f"Unsupported normalization method: {method}")
+
+def resample_audio(samples, sample_rate, target_sr=16000):
+    """Resamples audio to a specified target sample rate."""
+    # Preserve original duration 
+    duration = len(samples) / sample_rate
+    n_samples = int(duration * target_sr)  # Calculate required number of samples
+    return librosa.resample(y=samples, orig_sr=sample_rate, target_sr=target_sr, n_samples=n_samples)
+
+def calculate_mfcc(samples, sample_rate, n_mfcc=40, n_fft=2048, hop_length=512):
+    """Calculates MFCC features."""
+    mfcc = librosa.feature.mfcc(y=samples, sr=sample_rate, n_mfcc=n_mfcc, n_fft=n_fft, hop_length=hop_length)
+    return mfcc
+
+def generate_spectrogram(samples, sample_rate, n_fft=2048, hop_length=512, window='hann', visualize=False):
+    """Generates a spectrogram and optionally visualizes it."""
+    stft = librosa.stft(samples, n_fft=n_fft, hop_length=hop_length, window=window)
+    spectrogram = np.abs(stft)**2 # Power spectrogram
+    if visualize:
+        mel_spectrogram = librosa.feature.mel_spectrogram(S=spectrogram, sr=sample_rate)  # Mel scale for visualization
+        db_mel_spectrogram = librosa.power_to_db(mel_spectrogram)
+        spectrogram_image = librosa.display.specshow(db_mel_spectrogram, sr=sample_rate, hop_length=hop_length, x_axis='time', y_axis='mel')
+        _, buffer = cv2.imencode('.png', spectrogram_image)
+        image_base64 = base64.b64encode(buffer).decode()
+        return {'type':'image', 'image_data': image_base64}
+
+    return spectrogram  # Return numerical spectrogram
+
+def trim_silence(samples, top_db=20):
+    """Trims leading and trailing silence from audio."""
+    return librosa.effects.trim(samples, top_db=top_db)
+
+
+def apply_preprocessing(data: Any, data_type: str, step: str) -> Any:
     """Applies a preprocessing step to the data."""
     
     if data_type == "text":
@@ -51,6 +153,102 @@ def apply_preprocessing(data: Union[str, np.ndarray, List[str]], data_type: str,
             raise ValueError(f"Unsupported preprocessing step for image: {step}")
             
         return processed
+    elif data_type == "audio":
+        try:
+            # Handle input data whether it's a dict or direct audio data
+            if isinstance(data, dict) and 'audio_data' in data:
+                # Convert base64 audio data to samples and sample rate
+                samples, sample_rate = base64_to_audio(data['audio_data'])
+            else:
+                samples, sample_rate = data
+
+            # Default parameters for each processing step
+            params = {
+                "Normalize": {"method": "peak"},
+                "Resample": {"target_sr": 16000},
+                "MFCC": {"n_mfcc": 40, "n_fft": 2048, "hop_length": 512},
+                "Trim Silence": {"top_db": 20}
+            }
+
+            if step == "Normalize":
+                processed_samples = normalize_audio(samples, **params["Normalize"])
+                return {
+                    'type': 'audio',
+                    'audio_data': audio_to_base64(processed_samples, sample_rate),
+                    'sample_rate': sample_rate
+                }
+            
+            elif step == "MFCC":
+                # Calculate MFCC features
+                mfcc_features = librosa.feature.mfcc(
+                    y=samples, 
+                    sr=sample_rate,
+                    **params["MFCC"]
+                )
+                
+                # Create spectrogram image from MFCC
+                plt.figure(figsize=(10, 4))
+                librosa.display.specshow(
+                    mfcc_features,
+                    x_axis='time',
+                    y_axis='mel',
+                    sr=sample_rate
+                )
+                plt.colorbar(format='%+2.0f dB')
+                plt.title('MFCC Spectrogram')
+                
+                # Save plot to bytes buffer
+                buf = io.BytesIO()
+                plt.savefig(buf, format='png')
+                plt.close()
+                buf.seek(0)
+                
+                # Convert to base64
+                img_base64 = base64.b64encode(buf.getvalue()).decode()
+                
+                return {
+                    'type': 'spectrogram',
+                    'image_data': img_base64,
+                    'description': f'MFCC Spectrogram ({params["MFCC"]["n_mfcc"]} coefficients)',
+                    'sample_rate': sample_rate
+                }
+
+            elif step == "Resample":
+                processed_samples = resample_audio(samples, sample_rate, **params["Resample"])
+                new_sample_rate = params["Resample"]["target_sr"]
+                return {
+                    'type': 'audio',
+                    'audio_data': audio_to_base64(processed_samples, new_sample_rate),
+                    'sample_rate': new_sample_rate
+                }
+                
+            elif step == "Spectrogram":
+                result = generate_spectrogram(samples, sample_rate, **params["Spectrogram"])
+                if isinstance(result, dict):
+                    return result
+                else:
+                    spectrogram = ((result - result.min()) * 255 / 
+                                 (result.max() - result.min())).astype(np.uint8)
+                    spectrogram_colored = cv2.applyColorMap(spectrogram, cv2.COLORMAP_VIRIDIS)
+                    _, buffer = cv2.imencode('.png', spectrogram_colored)
+                    return {
+                        'type': 'spectrogram',
+                        'image_data': base64.b64encode(buffer).decode(),
+                        'description': 'Power Spectrogram',
+                        'sample_rate': sample_rate
+                    }
+                
+            elif step == "Trim Silence":
+                processed_samples, _ = trim_silence(samples, **params["Trim Silence"])
+                return {
+                    'type': 'audio',
+                    'audio_data': audio_to_base64(processed_samples, sample_rate),
+                    'sample_rate': sample_rate
+                }
+                
+        except Exception as e:
+            print(f"Error processing audio: {str(e)}")
+            raise ValueError(f"Error processing audio: {str(e)}")
     else:
         raise ValueError(f"Preprocessing not implemented for data type: {data_type}")
 

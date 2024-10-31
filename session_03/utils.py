@@ -27,38 +27,58 @@ def show_sample(data, data_type: str) -> Any:
         return data[:5000] + "... [only showing first 5000 characters]" if len(data) > 5000 else data
     elif data_type == "audio":
         try:
-            # Convert audio data to base64 for frontend playback
-            buffer = io.BytesIO()
+            # Check if data is already in the correct format
+            if isinstance(data, dict) and 'audio_data' in data:
+                return data
+                
+            # Check if data is MFCC features (spectrogram)
+            if isinstance(data, np.ndarray) and len(data.shape) == 2:
+                # It's a spectrogram/MFCC, convert to image
+                spectrogram_colored = cv2.applyColorMap(data, cv2.COLORMAP_VIRIDIS)
+                _, buffer = cv2.imencode('.png', spectrogram_colored)
+                return {
+                    'type': 'spectrogram',
+                    'image_data': base64.b64encode(buffer).decode(),
+                    'description': 'MFCC Spectrogram'
+                }
+            
+            # Handle regular audio data
+            if isinstance(data, tuple) and len(data) == 2:
+                samples, sample_rate = data
+            else:
+                raise ValueError(f"Invalid audio data format. Expected tuple of (samples, sample_rate), got {type(data)}")
             
             # Ensure samples are float32
-            samples, sample_rate = data
             if not isinstance(samples, np.ndarray):
                 samples = np.array(samples)
             samples = samples.astype(np.float32)
             
-            # Normalize audio if needed
+            # Normalize if needed
             if np.abs(samples).max() > 1.0:
                 samples = samples / np.abs(samples).max()
             
             # Write to WAV format
+            buffer = io.BytesIO()
             sf.write(buffer, samples, sample_rate, format='wav', subtype='FLOAT')
             buffer.seek(0)
             
             # Convert to base64
             audio_base64 = base64.b64encode(buffer.getvalue()).decode()
             
-            # Log for debugging
-            print(f"Audio data processed - Sample rate: {sample_rate}, Length: {len(samples)}")
-            print(f"Base64 data length: {len(audio_base64)}")
-            
             return {
+                'type': 'audio',
                 'audio_data': audio_base64,
                 'sample_rate': sample_rate,
-                'duration': len(samples) / sample_rate  # Add duration info
+                'duration': len(samples) / sample_rate
             }
+            
         except Exception as e:
             print(f"Error processing audio: {str(e)}")
+            print(f"Audio data type: {type(data)}")
+            if isinstance(data, tuple):
+                print(f"Tuple length: {len(data)}")
             raise
+            
     elif data_type == "image":
         # If data is a tensor, convert to numpy array
         if isinstance(data, torch.Tensor):

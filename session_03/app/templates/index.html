@@ -187,7 +187,7 @@
                 case 'image':
                     return ['Resize', 'Normalize', 'Grayscale', 'ML Preprocess'];
                 case 'audio':
-                    return ['Normalize', 'Trim Silence', 'Resample'];
+                    return ['Normalize', 'Trim Silence', 'Resample', 'MFCC'];
                 default:
                     return [];
             }
@@ -218,12 +218,34 @@
             const dataType = uploadedData.data_type;
             const isPreprocessing = getPreprocessingSteps(dataType).includes(selectedOption.value);
 
-            const requestData = {
-                data: uploadedData.sample.original,
-                [isPreprocessing ? 'preprocessing_steps' : 'augmentation_techniques']: [selectedOption.value]
-            };
-
-            console.log('Processing request data:', requestData);
+            // Prepare the request data based on data type
+            let requestData;
+            if (dataType === 'audio') {
+                // For audio, send the original data directly
+                const audioData = uploadedData.sample.original;
+                console.log('Original audio data:', audioData);
+                
+                // Make sure we're sending the complete audio data structure
+                if (!audioData || !audioData.audio_data) {
+                    console.error('Invalid audio data structure:', audioData);
+                    alert('Invalid audio data structure');
+                    return;
+                }
+                
+                // Send the complete audio data object
+                requestData = {
+                    data: audioData,  // This contains type, audio_data, and sample_rate
+                    [isPreprocessing ? 'preprocessing_steps' : 'augmentation_techniques']: [selectedOption.value]
+                };
+                
+                console.log('Sending audio request:', requestData);
+            } else {
+                // For other data types
+                requestData = {
+                    data: uploadedData.sample.original,
+                    [isPreprocessing ? 'preprocessing_steps' : 'augmentation_techniques']: [selectedOption.value]
+                };
+            }
 
             try {
                 const endpoint = isPreprocessing ? 'preprocess' : 'augment';
@@ -234,12 +256,17 @@
                     },
                     body: JSON.stringify(requestData),
                 });
+                
                 if (!response.ok) {
                     const errorText = await response.text();
+                    console.error('Server response:', errorText);
                     throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
                 }
+                
                 const result = await response.json();
                 console.log('Processing response:', result);
+                
+                // Update display
                 displayResult({
                     sample: {
                         original: uploadedData.sample.original,
@@ -250,12 +277,19 @@
                 });
             } catch (error) {
                 console.error('Error:', error);
+                alert(`Processing failed: ${error.message}`);
             }
         });
 
         function displayResult(data) {
             const originalDataDiv = document.getElementById('originalData');
             const processedDataDiv = document.getElementById('processedData');
+            const appliedEffectDiv = document.getElementById('appliedEffect');
+            
+            // Display the applied effect if any
+            if (data.appliedEffect) {
+                appliedEffectDiv.textContent = data.appliedEffect;
+            }
             
             // Display original data
             if (data.sample && data.sample.original) {
@@ -271,48 +305,41 @@
         }
 
         function displayData(container, data, dataType) {
-            container.innerHTML = ''; // Clear previous content
-            switch (dataType) {
-                case 'text':
-                    const pre = document.createElement('pre');
-                    pre.textContent = data;
-                    container.appendChild(pre);
-                    break;
-                case 'image':
-                    const wrapper = document.createElement('div');
-                    wrapper.className = 'image-wrapper';
-                    
+            container.innerHTML = '';
+            
+            if (dataType === 'audio') {
+                const audioContainer = document.createElement('div');
+                audioContainer.className = 'audio-controls';
+                
+                // Check if it's a spectrogram or audio
+                if (data.type === 'spectrogram') {
+                    // Display spectrogram image
                     const img = document.createElement('img');
-                    img.src = `data:image/png;base64,${data}`;
-                    img.className = 'img-fluid';
+                    img.src = `data:image/png;base64,${data.image_data}`;
+                    img.className = 'spectrogram-image';
                     
-                    img.onload = function() {
-                        const dimensions = document.createElement('div');
-                        dimensions.className = 'image-dimensions';
-                        dimensions.textContent = `Image Size: ${this.naturalWidth} × ${this.naturalHeight}px`;
-                        wrapper.appendChild(dimensions);
-                    };
+                    const description = document.createElement('div');
+                    description.className = 'spectrogram-description';
+                    description.textContent = data.description || 'Spectrogram';
                     
-                    wrapper.appendChild(img);
-                    container.appendChild(wrapper);
-                    break;
-                case 'audio':
-                    const audioContainer = document.createElement('div');
-                    audioContainer.className = 'audio-controls';
-                    
-                    // Create audio element with native controls
+                    audioContainer.appendChild(description);
+                    audioContainer.appendChild(img);
+                } else {
+                    // Regular audio display
                     const audio = document.createElement('audio');
                     audio.controls = true;
                     
-                    // Set the source
-                    if (typeof data === 'object' && data.audio_data) {
+                    if (data.audio_data) {
                         audio.src = `data:audio/wav;base64,${data.audio_data}`;
                     } else {
-                        audio.src = `data:audio/wav;base64,${data}`;
+                        console.error('No audio data available');
+                        audioContainer.innerHTML = '<div class="error-message">No audio data available</div>';
+                        container.appendChild(audioContainer);
+                        return;
                     }
                     
                     // Add sample rate if available
-                    if (typeof data === 'object' && data.sample_rate) {
+                    if (data.sample_rate) {
                         const sampleRateDiv = document.createElement('div');
                         sampleRateDiv.className = 'sample-rate';
                         sampleRateDiv.textContent = `Sample Rate: ${data.sample_rate} Hz`;
@@ -320,10 +347,30 @@
                     }
                     
                     audioContainer.appendChild(audio);
-                    container.appendChild(audioContainer);
-                    break;
-                default:
-                    container.textContent = JSON.stringify(data, null, 2);
+                }
+                
+                container.appendChild(audioContainer);
+            } else if (dataType === 'text') {
+                const pre = document.createElement('pre');
+                pre.textContent = data;
+                container.appendChild(pre);
+            } else if (dataType === 'image') {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'image-wrapper';
+                
+                const img = document.createElement('img');
+                img.src = `data:image/png;base64,${data}`;
+                img.className = 'img-fluid';
+                
+                img.onload = function() {
+                    const dimensions = document.createElement('div');
+                    dimensions.className = 'image-dimensions';
+                    dimensions.textContent = `Image Size: ${this.naturalWidth} × ${this.naturalHeight}px`;
+                    wrapper.appendChild(dimensions);
+                };
+                
+                wrapper.appendChild(img);
+                container.appendChild(wrapper);
             }
         }
 

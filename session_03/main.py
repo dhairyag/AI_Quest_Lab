@@ -1,7 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 from preprocessing import apply_preprocessing
 from augmentation import apply_augmentation
 from utils import load_data, show_sample
@@ -10,6 +10,7 @@ import logging
 from pydantic import BaseModel, Field
 import soundfile as sf
 import io
+import numpy as np
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -104,11 +105,11 @@ async def upload_data(data_type: str, file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 class PreprocessRequest(BaseModel):
-    data: str
+    data: Union[str, Dict[str, Any]]  # Can be either string or dictionary
     preprocessing_steps: List[str] = Field(default_factory=list)
 
 class AugmentRequest(BaseModel):
-    data: str
+    data: Union[str, Dict[str, Any]]  # Can be either string or dictionary
     augmentation_techniques: List[str] = Field(default_factory=list)
 
 # Preprocessing endpoint
@@ -119,16 +120,34 @@ async def preprocess_data(data_type: str, request: PreprocessRequest):
     """
     try:
         logger.info(f"Received preprocess request for {data_type}")
-        logger.info(f"Data: {request.data[:100]}...")  # Log first 100 characters of data
         logger.info(f"Preprocessing steps: {request.preprocessing_steps}")
         
-        processed_data = request.data
+        if data_type == "audio":
+            try:
+                # Extract audio data from the frontend format
+                audio_data = request.data
+                if isinstance(audio_data, dict):
+                    if 'audio_data' in audio_data:
+                        # Data is already in the correct format
+                        processed_data = audio_data
+                    else:
+                        raise HTTPException(status_code=400, detail="Invalid audio data format")
+                else:
+                    raise HTTPException(status_code=400, detail="Invalid audio data format")
+            except Exception as e:
+                logger.error(f"Error parsing audio data: {str(e)}")
+                raise HTTPException(status_code=400, detail="Invalid audio data format")
+        else:
+            processed_data = request.data
+
+        # Apply preprocessing steps
         for step in request.preprocessing_steps:
             try:
                 processed_data = apply_preprocessing(processed_data, data_type, step)
             except ValueError as e:
                 logger.error(f"Error in preprocessing step '{step}': {str(e)}")
                 raise HTTPException(status_code=400, detail=f"Error in preprocessing step '{step}': {str(e)}")
+        
         return {
             "message": "Data preprocessed successfully!",
             "sample": {

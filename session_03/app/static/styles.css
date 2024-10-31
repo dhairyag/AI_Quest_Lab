@@ -261,3 +261,18 @@ select, input[type="file"] {
     color: #666;
     font-style: italic;
 }
+
+.spectrogram-image {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin: 10px 0;
+}
+
+.spectrogram-description {
+    font-size: 0.9em;
+    color: #666;
+    text-align: center;
+    margin-bottom: 10px;
+}
