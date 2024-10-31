@@ -80,10 +80,7 @@ def normalize_audio(samples: np.ndarray, method="peak") -> np.ndarray:
 
 def resample_audio(samples, sample_rate, target_sr=16000):
     """Resamples audio to a specified target sample rate."""
-    # Preserve original duration 
-    duration = len(samples) / sample_rate
-    n_samples = int(duration * target_sr)  # Calculate required number of samples
-    return librosa.resample(y=samples, orig_sr=sample_rate, target_sr=target_sr, n_samples=n_samples)
+    return librosa.resample(y=samples, orig_sr=sample_rate, target_sr=target_sr)
 
 def calculate_mfcc(samples, sample_rate, n_mfcc=40, n_fft=2048, hop_length=512):
     """Calculates MFCC features."""
