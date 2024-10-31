@@ -66,7 +66,34 @@
             const dataType = document.getElementById('data-type').value;
             const fileInput = document.getElementById('file-input');
             
-            // Add loading state
+            // Validate file type
+            const validTypes = {
+                'text': ['text/plain', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+                'audio': ['audio/wav', 'audio/mpeg', 'audio/ogg'],
+                'image': ['image/png', 'image/jpeg', 'image/gif']
+            };
+            
+            if (!fileInput.files[0]) {
+                alert('Please select a file');
+                return;
+            }
+            
+            // Check file extension
+            const fileName = fileInput.files[0].name.toLowerCase();
+            const fileExt = fileName.substring(fileName.lastIndexOf('.'));
+            const validExts = {
+                'text': ['.txt', '.doc', '.docx'],
+                'audio': ['.wav', '.mp3', '.ogg'],
+                'image': ['.png', '.jpg', '.jpeg', '.gif']
+            };
+            
+            if (!validExts[dataType].includes(fileExt) && !validTypes[dataType].includes(fileInput.files[0].type)) {
+                alert(`Invalid file type. Please select a valid ${dataType} file.`);
+                fileInput.value = ''; // Clear the file input
+                return;
+            }
+            
+            // Continue with the upload if validation passes
             const submitButton = e.target.querySelector('button');
             submitButton.disabled = true;
             submitButton.textContent = 'Uploading...';
@@ -273,7 +300,7 @@
                     const audioContainer = document.createElement('div');
                     audioContainer.className = 'audio-controls';
                     
-                    // Create audio element
+                    // Create audio element with native controls
                     const audio = document.createElement('audio');
                     audio.controls = true;
                     
@@ -284,30 +311,6 @@
                         audio.src = `data:audio/wav;base64,${data}`;
                     }
                     
-                    // Add custom play/pause button
-                    const playPauseBtn = document.createElement('button');
-                    playPauseBtn.className = 'play-pause-btn';
-                    playPauseBtn.innerHTML = '▶️';
-                    
-                    playPauseBtn.onclick = function() {
-                        if (audio.paused) {
-                            audio.play()
-                            .then(() => {
-                                playPauseBtn.innerHTML = '⏸️';
-                            })
-                            .catch(error => {
-                                console.error('Play error:', error);
-                            });
-                        } else {
-                            audio.pause();
-                            playPauseBtn.innerHTML = '▶️';
-                        }
-                    };
-                    
-                    // Add elements to container
-                    audioContainer.appendChild(audio);
-                    audioContainer.appendChild(playPauseBtn);
-                    
                     // Add sample rate if available
                     if (typeof data === 'object' && data.sample_rate) {
                         const sampleRateDiv = document.createElement('div');
@@ -316,6 +319,7 @@
                         audioContainer.appendChild(sampleRateDiv);
                     }
                     
+                    audioContainer.appendChild(audio);
                     container.appendChild(audioContainer);
                     break;
                 default:
@@ -359,13 +363,13 @@
             const fileInput = document.getElementById('file-input');
             switch (this.value) {
                 case 'text':
-                    fileInput.accept = '.txt,text/plain';
+                    fileInput.accept = '.txt,.doc,.docx,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
                     break;
                 case 'audio':
-                    fileInput.accept = '.wav,.mp3,.ogg,audio/*';
+                    fileInput.accept = '.wav,.mp3,.ogg,audio/wav,audio/mpeg,audio/ogg';
                     break;
                 case 'image':
-                    fileInput.accept = '.png,.jpg,.jpeg,image/*';
+                    fileInput.accept = '.png,.jpg,.jpeg,.gif,image/png,image/jpeg,image/gif';
                     break;
             }
         });
