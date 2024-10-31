@@ -155,12 +155,26 @@ def apply_preprocessing(data: Any, data_type: str, step: str) -> Any:
         return processed
     elif data_type == "audio":
         try:
-            # Handle input data whether it's a dict or direct audio data
+            # Import required modules at the start of audio processing
+            import base64
+            import io
+            import soundfile as sf
+            import matplotlib.pyplot as plt
+            import librosa.display
+            
+            # Convert audio data from frontend format to processing format
             if isinstance(data, dict) and 'audio_data' in data:
-                # Convert base64 audio data to samples and sample rate
+                # For MFCC, we need to decode the base64 audio data first
                 samples, sample_rate = base64_to_audio(data['audio_data'])
-            else:
+            elif isinstance(data, tuple) and len(data) == 2:
                 samples, sample_rate = data
+            else:
+                raise ValueError(f"Invalid audio data format. Got type: {type(data)}")
+
+            # Ensure samples are numpy array and handle stereo to mono conversion
+            samples = np.array(samples)
+            if len(samples.shape) > 1:  # If stereo, convert to mono
+                samples = np.mean(samples, axis=1)
 
             # Default parameters for each processing step
             params = {
@@ -179,39 +193,53 @@ def apply_preprocessing(data: Any, data_type: str, step: str) -> Any:
                 }
             
             elif step == "MFCC":
-                # Calculate MFCC features
-                mfcc_features = librosa.feature.mfcc(
-                    y=samples, 
-                    sr=sample_rate,
-                    **params["MFCC"]
-                )
+                print(f"Processing MFCC with samples shape: {samples.shape}, sample_rate: {sample_rate}")
                 
-                # Create spectrogram image from MFCC
-                plt.figure(figsize=(10, 4))
-                librosa.display.specshow(
-                    mfcc_features,
-                    x_axis='time',
-                    y_axis='mel',
-                    sr=sample_rate
-                )
-                plt.colorbar(format='%+2.0f dB')
-                plt.title('MFCC Spectrogram')
-                
-                # Save plot to bytes buffer
-                buf = io.BytesIO()
-                plt.savefig(buf, format='png')
-                plt.close()
-                buf.seek(0)
-                
-                # Convert to base64
-                img_base64 = base64.b64encode(buf.getvalue()).decode()
-                
-                return {
-                    'type': 'spectrogram',
-                    'image_data': img_base64,
-                    'description': f'MFCC Spectrogram ({params["MFCC"]["n_mfcc"]} coefficients)',
-                    'sample_rate': sample_rate
-                }
+                try:
+                    # Calculate MFCC features
+                    mfcc_features = librosa.feature.mfcc(
+                        y=samples, 
+                        sr=sample_rate,
+                        **params["MFCC"]
+                    )
+                    
+                    print(f"MFCC features shape: {mfcc_features.shape}")
+                    
+                    # Create figure and plot MFCC
+                    plt.figure(figsize=(10, 4))
+                    librosa.display.specshow(
+                        mfcc_features,
+                        sr=sample_rate,
+                        hop_length=params["MFCC"]["hop_length"],
+                        x_axis='time',
+                        y_axis='mel'
+                    )
+                    plt.colorbar(format='%+2.0f dB')
+                    plt.title('MFCC Spectrogram')
+                    
+                    # Save plot to bytes buffer
+                    buf = io.BytesIO()
+                    plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0)
+                    plt.close()  # Close the figure to free memory
+                    buf.seek(0)
+                    
+                    # Convert to base64
+                    img_base64 = base64.b64encode(buf.getvalue()).decode()
+                    
+                    # Return in a format that show_sample can handle directly
+                    # This is different from other audio preprocessing steps
+                    # as it returns a spectrogram image instead of audio data
+                    return {
+                        'type': 'spectrogram',  # Explicit type for frontend handling
+                        'image_data': img_base64,
+                        'description': f'MFCC Spectrogram ({params["MFCC"]["n_mfcc"]} coefficients)',
+                        'sample_rate': sample_rate,  # Keep sample rate for reference
+                        'is_mfcc': True  # Flag to identify MFCC specifically
+                    }
+                    
+                except Exception as e:
+                    print(f"Error in MFCC calculation: {str(e)}")
+                    raise ValueError(f"MFCC calculation failed: {str(e)}")
 
             elif step == "Resample":
                 processed_samples = resample_audio(samples, sample_rate, **params["Resample"])
@@ -248,6 +276,9 @@ def apply_preprocessing(data: Any, data_type: str, step: str) -> Any:
                 
         except Exception as e:
             print(f"Error processing audio: {str(e)}")
+            print(f"Input data type: {type(data)}")
+            if isinstance(data, dict):
+                print(f"Dictionary keys: {data.keys()}")
             raise ValueError(f"Error processing audio: {str(e)}")
     else:
         raise ValueError(f"Preprocessing not implemented for data type: {data_type}")

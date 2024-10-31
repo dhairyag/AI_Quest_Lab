@@ -312,19 +312,28 @@
                 audioContainer.className = 'audio-controls';
                 
                 // Check if it's a spectrogram or audio
-                if (data.type === 'spectrogram') {
-                    // Display spectrogram image
+                if (data.type === 'spectrogram' && data.is_mfcc) {
+                    console.log('Displaying MFCC spectrogram');
+                    // Display MFCC spectrogram image
                     const img = document.createElement('img');
                     img.src = `data:image/png;base64,${data.image_data}`;
                     img.className = 'spectrogram-image';
                     
                     const description = document.createElement('div');
                     description.className = 'spectrogram-description';
-                    description.textContent = data.description || 'Spectrogram';
+                    description.textContent = data.description || 'MFCC Spectrogram';
+                    
+                    // Add sample rate information if available
+                    if (data.sample_rate) {
+                        const sampleRateDiv = document.createElement('div');
+                        sampleRateDiv.className = 'sample-rate';
+                        sampleRateDiv.textContent = `Original Sample Rate: ${data.sample_rate} Hz`;
+                        audioContainer.appendChild(sampleRateDiv);
+                    }
                     
                     audioContainer.appendChild(description);
                     audioContainer.appendChild(img);
-                } else {
+                } else if (data.type === 'audio') {
                     // Regular audio display
                     const audio = document.createElement('audio');
                     audio.controls = true;
@@ -347,6 +356,9 @@
                     }
                     
                     audioContainer.appendChild(audio);
+                } else {
+                    console.error('Unknown audio data type:', data.type);
+                    audioContainer.innerHTML = '<div class="error-message">Unknown audio data format</div>';
                 }
                 
                 container.appendChild(audioContainer);

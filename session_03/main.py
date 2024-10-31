@@ -148,10 +148,16 @@ async def preprocess_data(data_type: str, request: PreprocessRequest):
                 logger.error(f"Error in preprocessing step '{step}': {str(e)}")
                 raise HTTPException(status_code=400, detail=f"Error in preprocessing step '{step}': {str(e)}")
         
+        # Check if the final processed_data is a dict (e.g., from MFCC)
+        if data_type == "audio" and isinstance(processed_data, dict):
+            sample = processed_data  # Directly use the dict for spectrogram
+        else:
+            sample = show_sample(processed_data, data_type)
+        
         return {
             "message": "Data preprocessed successfully!",
             "sample": {
-                "processed": show_sample(processed_data, data_type)
+                "processed": sample
             },
             "data_type": data_type
         }
