@@ -8,6 +8,8 @@ from utils import load_data, show_sample
 import json
 import logging
 from pydantic import BaseModel, Field
+import soundfile as sf
+import io
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -38,17 +40,67 @@ async def upload_data(data_type: str, file: UploadFile = File(...)):
         Dictionary with success message and sample.
     """
     try:
+        if data_type == "audio":
+            # Validate audio file type
+            valid_audio_types = ["audio/wav", "audio/mpeg", "audio/ogg"]
+            if file.content_type not in valid_audio_types:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Invalid audio format. Supported formats: WAV, MP3, OGG. Got: {file.content_type}"
+                )
+        
         file_content = await file.read()
-        data = load_data(file_content, data_type)
-        return {
-            "message": "Data uploaded successfully!",
-            "sample": {
-                "original": show_sample(data, data_type),
-                "processed": None  # No processing at this stage
-            },
-            "data_type": data_type
-        }
+        
+        if data_type == "audio":
+            try:
+                # Save the uploaded file temporarily
+                temp_file = io.BytesIO(file_content)
+                # Read audio file using soundfile
+                try:
+                    samples, sample_rate = sf.read(temp_file)
+                    print(f"Audio file read successfully - Sample rate: {sample_rate}, Shape: {samples.shape}")
+                    
+                    # Validate audio data
+                    if len(samples) == 0:
+                        raise HTTPException(status_code=400, detail="Audio file is empty")
+                    
+                    data = (samples, sample_rate)
+                except sf.LibsndfileError as e:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Error reading audio file. Make sure it's a valid WAV file."
+                    )
+                    
+            except Exception as e:
+                logger.error(f"Error processing audio file: {str(e)}")
+                raise HTTPException(status_code=400, detail=f"Error processing audio file: {str(e)}")
+        else:
+            data = load_data(file_content, data_type)
+            
+        # Process the sample
+        try:
+            sample = show_sample(data, data_type)
+            
+            # For audio, verify the sample contains required data
+            if data_type == "audio":
+                if not isinstance(sample, dict) or 'audio_data' not in sample:
+                    raise HTTPException(status_code=500, detail="Invalid audio sample format")
+                print(f"Audio sample prepared - Base64 length: {len(sample['audio_data'])}")
+                
+            return {
+                "message": "Data uploaded successfully!",
+                "sample": {
+                    "original": sample,
+                    "processed": None
+                },
+                "data_type": data_type
+            }
+        except Exception as e:
+            logger.error(f"Error preparing sample: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error preparing sample: {str(e)}")
+            
     except Exception as e:
+        logger.error(f"Error uploading file: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 class PreprocessRequest(BaseModel):

@@ -22,7 +22,9 @@
                             <option value="audio">Audio</option>
                             <option value="image">Image</option>
                         </select>
-                        <input type="file" id="file-input">
+                        <input type="file" id="file-input" name="file" 
+                            accept=".txt,.wav,.mp3,.ogg,.png,.jpg,.jpeg,audio/*,image/*,text/plain" 
+                            required>
                         <button type="submit">Upload</button>
                     </form>
                 </div>
@@ -71,7 +73,15 @@
             
             try {
                 const formData = new FormData();
-                formData.append('file', fileInput.files[0]);
+                const file = fileInput.files[0];
+                formData.append('file', file);
+                
+                console.log('Uploading file:', {
+                    name: file.name,
+                    type: file.type,
+                    size: file.size,
+                    dataType: dataType
+                });
                 
                 const response = await fetch(`/upload/${dataType}`, {
                     method: 'POST',
@@ -79,10 +89,13 @@
                 });
                 
                 if (!response.ok) {
-                    throw new Error(`Upload failed: ${response.statusText}`);
+                    const errorText = await response.text();
+                    throw new Error(`Upload failed: ${errorText}`);
                 }
                 
                 const result = await response.json();
+                console.log('Upload response:', result);
+                
                 uploadedData = result;
                 displayResult(result);
                 showProcessingOptions(dataType);
@@ -246,7 +259,6 @@
                     img.src = `data:image/png;base64,${data}`;
                     img.className = 'img-fluid';
                     
-                    // Add load event to get actual image dimensions
                     img.onload = function() {
                         const dimensions = document.createElement('div');
                         dimensions.className = 'image-dimensions';
@@ -258,10 +270,53 @@
                     container.appendChild(wrapper);
                     break;
                 case 'audio':
+                    const audioContainer = document.createElement('div');
+                    audioContainer.className = 'audio-controls';
+                    
+                    // Create audio element
                     const audio = document.createElement('audio');
                     audio.controls = true;
-                    audio.src = `data:audio/wav;base64,${data}`;
-                    container.appendChild(audio);
+                    
+                    // Set the source
+                    if (typeof data === 'object' && data.audio_data) {
+                        audio.src = `data:audio/wav;base64,${data.audio_data}`;
+                    } else {
+                        audio.src = `data:audio/wav;base64,${data}`;
+                    }
+                    
+                    // Add custom play/pause button
+                    const playPauseBtn = document.createElement('button');
+                    playPauseBtn.className = 'play-pause-btn';
+                    playPauseBtn.innerHTML = '▶️';
+                    
+                    playPauseBtn.onclick = function() {
+                        if (audio.paused) {
+                            audio.play()
+                            .then(() => {
+                                playPauseBtn.innerHTML = '⏸️';
+                            })
+                            .catch(error => {
+                                console.error('Play error:', error);
+                            });
+                        } else {
+                            audio.pause();
+                            playPauseBtn.innerHTML = '▶️';
+                        }
+                    };
+                    
+                    // Add elements to container
+                    audioContainer.appendChild(audio);
+                    audioContainer.appendChild(playPauseBtn);
+                    
+                    // Add sample rate if available
+                    if (typeof data === 'object' && data.sample_rate) {
+                        const sampleRateDiv = document.createElement('div');
+                        sampleRateDiv.className = 'sample-rate';
+                        sampleRateDiv.textContent = `Sample Rate: ${data.sample_rate} Hz`;
+                        audioContainer.appendChild(sampleRateDiv);
+                    }
+                    
+                    container.appendChild(audioContainer);
                     break;
                 default:
                     container.textContent = JSON.stringify(data, null, 2);
@@ -299,6 +354,24 @@
             const data = await response.json();
             displaySample(data);
         }
+
+        document.getElementById('data-type').addEventListener('change', function() {
+            const fileInput = document.getElementById('file-input');
+            switch (this.value) {
+                case 'text':
+                    fileInput.accept = '.txt,text/plain';
+                    break;
+                case 'audio':
+                    fileInput.accept = '.wav,.mp3,.ogg,audio/*';
+                    break;
+                case 'image':
+                    fileInput.accept = '.png,.jpg,.jpeg,image/*';
+                    break;
+            }
+        });
+
+        // Trigger change event on page load to set initial accept attribute
+        document.getElementById('data-type').dispatchEvent(new Event('change'));
     </script>
 </body>
 </html>
