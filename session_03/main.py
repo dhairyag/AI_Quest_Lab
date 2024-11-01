@@ -173,20 +173,42 @@ async def augment_data(data_type: str, request: AugmentRequest):
     """
     try:
         logger.info(f"Received augment request for {data_type}")
-        logger.info(f"Data: {request.data[:100]}...")  # Log first 100 characters of data
         logger.info(f"Augmentation techniques: {request.augmentation_techniques}")
         
-        augmented_data = request.data
+        # Special handling for audio data
+        if data_type == "audio":
+            try:
+                # Extract audio data from the frontend format
+                audio_data = request.data
+                if isinstance(audio_data, dict):
+                    if 'audio_data' in audio_data:
+                        # Data is already in the correct format
+                        augmented_data = audio_data
+                    else:
+                        raise HTTPException(status_code=400, detail="Invalid audio data format")
+                else:
+                    raise HTTPException(status_code=400, detail="Invalid audio data format")
+            except Exception as e:
+                logger.error(f"Error parsing audio data: {str(e)}")
+                raise HTTPException(status_code=400, detail="Invalid audio data format")
+        else:
+            augmented_data = request.data
+
+        # Apply augmentation techniques
         for technique in request.augmentation_techniques:
             try:
                 augmented_data = apply_augmentation(augmented_data, data_type, technique)
             except ValueError as e:
                 logger.error(f"Error in augmentation technique '{technique}': {str(e)}")
                 raise HTTPException(status_code=400, detail=f"Error in augmentation technique '{technique}': {str(e)}")
+        
+        # For audio, the augmented_data will already be in the correct format for show_sample
+        sample = augmented_data if data_type == "audio" else show_sample(augmented_data, data_type)
+        
         return {
             "message": "Data augmented successfully!",
             "sample": {
-                "processed": show_sample(augmented_data, data_type)
+                "processed": sample
             },
             "data_type": data_type
         }
