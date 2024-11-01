@@ -21,9 +21,10 @@
                             <option value="text">Text</option>
                             <option value="audio">Audio</option>
                             <option value="image">Image</option>
+                            <option value="3d_geometry">3D Geometry</option>
                         </select>
                         <input type="file" id="file-input" name="file" 
-                            accept=".txt,.wav,.mp3,.ogg,.png,.jpg,.jpeg,audio/*,image/*,text/plain" 
+                            accept=".txt,.wav,.mp3,.ogg,.png,.jpg,.jpeg,.off,audio/*,image/*,text/plain" 
                             required>
                         <button type="submit">Upload</button>
                     </form>
@@ -70,7 +71,8 @@
             const validTypes = {
                 'text': ['text/plain', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
                 'audio': ['audio/wav', 'audio/mpeg', 'audio/ogg'],
-                'image': ['image/png', 'image/jpeg', 'image/gif']
+                'image': ['image/png', 'image/jpeg', 'image/gif'],
+                '3d_geometry': ['application/octet-stream']
             };
             
             if (!fileInput.files[0]) {
@@ -84,7 +86,8 @@
             const validExts = {
                 'text': ['.txt', '.doc', '.docx'],
                 'audio': ['.wav', '.mp3', '.ogg'],
-                'image': ['.png', '.jpg', '.jpeg', '.gif']
+                'image': ['.png', '.jpg', '.jpeg', '.gif'],
+                '3d_geometry': ['.off']
             };
             
             if (!validExts[dataType].includes(fileExt) && !validTypes[dataType].includes(fileInput.files[0].type)) {
@@ -188,6 +191,8 @@
                     return ['Resize', 'Normalize', 'Grayscale', 'ML Preprocess'];
                 case 'audio':
                     return ['Normalize', 'Trim Silence', 'Resample', 'MFCC'];
+                case '3d_geometry':
+                    return ['Normalize', 'Centering'];
                 default:
                     return [];
             }
@@ -202,6 +207,8 @@
                     return ['Rotate', 'Flip', 'Add Noise'];
                 case 'audio':
                     return ['Time Stretch', 'Pitch Shift', 'Add Noise'];
+                case '3d_geometry':
+                    return ['Random Rotation', 'Random Scaling', 'Add Noise'];
                 default:
                     return [];
             }
@@ -307,7 +314,24 @@
         function displayData(container, data, dataType) {
             container.innerHTML = '';
             
-            if (dataType === 'audio') {
+            if (dataType === '3d_geometry') {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'geometry-wrapper';
+                
+                // Display the 2D projection image
+                const img = document.createElement('img');
+                img.src = data.image;
+                img.className = 'geometry-projection';
+                
+                // Add vertex count information
+                const info = document.createElement('div');
+                info.className = 'geometry-info';
+                info.textContent = `Number of vertices: ${data.vertices_count}`;
+                
+                wrapper.appendChild(img);
+                wrapper.appendChild(info);
+                container.appendChild(wrapper);
+            } else if (dataType === 'audio') {
                 const audioContainer = document.createElement('div');
                 audioContainer.className = 'audio-controls';
                 
@@ -429,6 +453,9 @@
                     break;
                 case 'image':
                     fileInput.accept = '.png,.jpg,.jpeg,.gif,image/png,image/jpeg,image/gif';
+                    break;
+                case '3d_geometry':
+                    fileInput.accept = '.off';
                     break;
             }
         });

@@ -11,6 +11,8 @@ from pydantic import BaseModel, Field
 import soundfile as sf
 import io
 import numpy as np
+import matplotlib.pyplot as plt
+import base64
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -41,8 +43,14 @@ async def upload_data(data_type: str, file: UploadFile = File(...)):
         Dictionary with success message and sample.
     """
     try:
+        if data_type == "3d_geometry":
+            if not file.filename.endswith('.off'):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid file format. Only .OFF files are supported for 3D geometry."
+                )
+        
         if data_type == "audio":
-            # Validate audio file type
             valid_audio_types = ["audio/wav", "audio/mpeg", "audio/ogg"]
             if file.content_type not in valid_audio_types:
                 raise HTTPException(
@@ -52,37 +60,67 @@ async def upload_data(data_type: str, file: UploadFile = File(...)):
         
         file_content = await file.read()
         
-        if data_type == "audio":
+        if data_type == "3d_geometry":
             try:
-                # Save the uploaded file temporarily
+                content = file_content.decode('utf-8').strip().split('\n')
+                if content[0].strip() != 'OFF':
+                    raise HTTPException(status_code=400, detail="Invalid OFF file format")
+                
+                n_vertices, n_faces, _ = map(int, content[1].strip().split())
+                vertices = []
+                for i in range(n_vertices):
+                    x, y, z = map(float, content[i + 2].strip().split())
+                    vertices.append([x, y, z])
+                vertices = np.array(vertices)
+                
+                fig = plt.figure(figsize=(8, 8))
+                ax = fig.add_subplot(111)
+                ax.scatter(vertices[:, 0], vertices[:, 1], c='blue', alpha=0.6)
+                ax.set_aspect('equal')
+                ax.set_title('2D Projection (X-Y plane)')
+                
+                buf = io.BytesIO()
+                plt.savefig(buf, format='png')
+                plt.close()
+                buf.seek(0)
+                img_str = base64.b64encode(buf.getvalue()).decode()
+                
+                data = {
+                    'vertices': vertices.tolist(),
+                    'projection': f'data:image/png;base64,{img_str}'
+                }
+                
+            except Exception as e:
+                logger.error(f"Error processing 3D geometry file: {str(e)}")
+                raise HTTPException(status_code=400, detail=f"Error processing 3D geometry file: {str(e)}")
+        elif data_type == "audio":
+            try:
                 temp_file = io.BytesIO(file_content)
-                # Read audio file using soundfile
                 try:
                     samples, sample_rate = sf.read(temp_file)
-                    print(f"Audio file read successfully - Sample rate: {sample_rate}, Shape: {samples.shape}")
-                    
-                    # Validate audio data
                     if len(samples) == 0:
                         raise HTTPException(status_code=400, detail="Audio file is empty")
-                    
                     data = (samples, sample_rate)
                 except sf.LibsndfileError as e:
                     raise HTTPException(
                         status_code=400,
                         detail="Error reading audio file. Make sure it's a valid WAV file."
                     )
-                    
             except Exception as e:
                 logger.error(f"Error processing audio file: {str(e)}")
                 raise HTTPException(status_code=400, detail=f"Error processing audio file: {str(e)}")
         else:
             data = load_data(file_content, data_type)
             
-        # Process the sample
         try:
-            sample = show_sample(data, data_type)
+            if data_type == "3d_geometry":
+                sample = {
+                    'image': data['projection'],
+                    'vertices_count': len(data['vertices'])
+                }
+            else:
+                sample = show_sample(data, data_type)
             
-            # For audio, verify the sample contains required data
             if data_type == "audio":
                 if not isinstance(sample, dict) or 'audio_data' not in sample:
                     raise HTTPException(status_code=500, detail="Invalid audio sample format")
