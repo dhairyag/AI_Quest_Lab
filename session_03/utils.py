@@ -93,3 +93,79 @@ def show_sample(data, data_type: str) -> Any:
         return base64.b64encode(buffer).decode()
     else:
         raise ValueError(f"Unsupported data type: {data_type}")
+
+def visualize_3d_geometry(vertices, faces=None, title=None, dpi=100):
+    """
+    Creates a 2D visualization of 3D geometry data.
+    
+    Args:
+        vertices (np.ndarray): Array of shape (N, 3) containing vertex coordinates
+        faces (list, optional): List of faces, each face is a list of vertex indices
+        title (str, optional): Title for the plot
+        dpi (int, optional): DPI for the output image
+        
+    Returns:
+        str: Base64 encoded PNG image of the visualization
+    """
+    import matplotlib.pyplot as plt
+    import io
+    import base64
+    import numpy as np
+    
+    # Create figure with proper sizing
+    fig = plt.figure(figsize=(6, 6))
+    ax = fig.add_subplot(111)
+    
+    # Plot vertices
+    ax.scatter(vertices[:, 0], vertices[:, 1], c='blue', alpha=0.6, s=20)
+    
+    # Plot edges from faces if provided
+    if faces is not None:
+        for face in faces:
+            for i in range(len(face)):
+                j = (i + 1) % len(face)
+                v1 = vertices[face[i]]
+                v2 = vertices[face[j]]
+                ax.plot([v1[0], v2[0]], [v1[1], v2[1]], 'b-', alpha=0.3)
+    
+    # Auto-adjust the plot limits with padding
+    x_min, x_max = vertices[:, 0].min(), vertices[:, 0].max()
+    y_min, y_max = vertices[:, 1].min(), vertices[:, 1].max()
+    
+    # Calculate the range and center
+    x_range = x_max - x_min
+    y_range = y_max - y_min
+    x_center = (x_max + x_min) / 2
+    y_center = (y_max + y_min) / 2
+    
+    # Use the larger range to maintain aspect ratio
+    max_range = max(x_range, y_range)
+    padding = 0.15  # 15% padding
+    
+    # Set limits maintaining aspect ratio
+    ax.set_xlim(x_center - max_range/2 - max_range*padding,
+               x_center + max_range/2 + max_range*padding)
+    ax.set_ylim(y_center - max_range/2 - max_range*padding,
+               y_center + max_range/2 + max_range*padding)
+    
+    # Keep axes and add grid
+    ax.set_aspect('equal')
+    ax.grid(True, linestyle='--', alpha=0.3)
+    
+    # Add labels
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    
+    if title:
+        ax.set_title(title)
+    
+    # Adjust layout to prevent label cutoff
+    plt.tight_layout()
+    
+    # Convert to base64 image
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', dpi=dpi, bbox_inches='tight', pad_inches=0.25)
+    plt.close()
+    buf.seek(0)
+    
+    return base64.b64encode(buf.getvalue()).decode()

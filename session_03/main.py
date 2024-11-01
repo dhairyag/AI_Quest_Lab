@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from typing import List, Optional, Dict, Any, Union
 from preprocessing import apply_preprocessing
 from augmentation import apply_augmentation
-from utils import load_data, show_sample
+from utils import load_data, show_sample, visualize_3d_geometry
 import json
 import logging
 from pydantic import BaseModel, Field
@@ -85,59 +85,8 @@ async def upload_data(data_type: str, file: UploadFile = File(...)):
                     if face[0] == 3:  # Only handle triangular faces
                         faces.append(face[1:])
                 
-                # Create figure with proper sizing and with margins for axes
-                fig = plt.figure(figsize=(6, 6))
-                ax = fig.add_subplot(111)
-                
-                # Plot vertices
-                ax.scatter(vertices[:, 0], vertices[:, 1], c='blue', alpha=0.6, s=20)
-                
-                # Plot edges from faces
-                for face in faces:
-                    for i in range(len(face)):
-                        j = (i + 1) % len(face)
-                        v1 = vertices[face[i]]
-                        v2 = vertices[face[j]]
-                        ax.plot([v1[0], v2[0]], [v1[1], v2[1]], 'b-', alpha=0.3)
-                
-                # Auto-adjust the plot limits with padding
-                x_min, x_max = vertices[:, 0].min(), vertices[:, 0].max()
-                y_min, y_max = vertices[:, 1].min(), vertices[:, 1].max()
-                
-                # Calculate the range and center
-                x_range = x_max - x_min
-                y_range = y_max - y_min
-                x_center = (x_max + x_min) / 2
-                y_center = (y_max + y_min) / 2
-                
-                # Use the larger range to maintain aspect ratio
-                max_range = max(x_range, y_range)
-                padding = 0.15  # 15% padding
-                
-                # Set limits maintaining aspect ratio
-                ax.set_xlim(x_center - max_range/2 - max_range*padding,
-                           x_center + max_range/2 + max_range*padding)
-                ax.set_ylim(y_center - max_range/2 - max_range*padding,
-                           y_center + max_range/2 + max_range*padding)
-                
-                # Keep axes and add grid
-                ax.set_aspect('equal')
-                ax.grid(True, linestyle='--', alpha=0.3)
-                
-                # Add labels
-                ax.set_xlabel('X')
-                ax.set_ylabel('Y')
-                
-                # Adjust layout to prevent label cutoff
-                plt.tight_layout()
-                
-                # Convert to base64 image with proper DPI and size
-                buf = io.BytesIO()
-                plt.savefig(buf, format='png', dpi=100, bbox_inches='tight', 
-                           pad_inches=0.25)  # Add padding around the plot
-                plt.close()
-                buf.seek(0)
-                img_str = base64.b64encode(buf.getvalue()).decode()
+                # Generate visualization using the utility function
+                img_str = visualize_3d_geometry(vertices, faces)
                 
                 data = {
                     'vertices': vertices.tolist(),
