@@ -288,17 +288,29 @@ def apply_preprocessing(data: Any, data_type: str, step: str) -> Any:
         faces = data['faces']
         
         if step == "Normalize":
-            # Scale to unit sphere
-            center = vertices.mean(axis=0)
-            vertices = vertices - center
-            max_dist = np.max(np.linalg.norm(vertices, axis=1))
+            # Convert to PyTorch tensor for ML operations
+            vertices_tensor = torch.from_numpy(vertices).float()
+            
+            # Scale to unit sphere using PyTorch operations
+            center = vertices_tensor.mean(dim=0)
+            vertices_tensor = vertices_tensor - center
+            max_dist = torch.max(torch.norm(vertices_tensor, dim=1))
             if max_dist > 0:
-                vertices = vertices / max_dist
+                vertices_tensor = vertices_tensor / max_dist
+                
+            # Convert back to numpy for visualization
+            vertices = vertices_tensor.numpy()
             
         elif step == "Centering":
-            # Center at origin
-            center = vertices.mean(axis=0)
-            vertices = vertices - center
+            # Convert to PyTorch tensor for ML operations
+            vertices_tensor = torch.from_numpy(vertices).float()
+            
+            # Center at origin using PyTorch operations
+            center = vertices_tensor.mean(dim=0)
+            vertices_tensor = vertices_tensor - center
+            
+            # Convert back to numpy for visualization
+            vertices = vertices_tensor.numpy()
         else:
             raise ValueError(f"Unsupported preprocessing step for 3D geometry: {step}")
             
