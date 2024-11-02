@@ -176,9 +176,49 @@
 
             const labelElement = document.createElement('label');
             labelElement.htmlFor = radio.id;
-            labelElement.textContent = label;
+            
+            // Create tooltip icon
+            const tooltipIcon = document.createElement('span');
+            tooltipIcon.className = 'tooltip-icon';
+            tooltipIcon.textContent = 'ⓘ';  // Info icon
+            
+            // Add tooltips based on the processing type and label
+            const tooltips = {
+                // Preprocessing tooltips
+                'Tokenize': 'Tokenizes text using a pre-trained BERT tokenizer',
+                'Pad': 'Pads or truncates a sequence of tokens to a fixed length',
+                'Embed': 'Maps tokens to vectors using a pre-trained BERT model',
+                'Remove Punctuation': 'Removes all punctuation marks from the text',
+                'Resize': 'Resizes image to a target size (224x224 by default)',
+                'Normalize': 'Normalizes image using ImageNet statistics',
+                'Grayscale': 'Converts image to grayscale',
+                'ML Preprocess': 'Applies standard ML preprocessing pipeline including resize, normalization, and optional grayscale conversion',
+                'MFCC': 'Calculates Mel-frequency cepstral coefficients (MFCC) features',
+                'Resample': 'Resamples audio to a specified target sample rate (16000Hz by default)',
+                'Trim Silence': 'Trims leading and trailing silence from audio',
+                'Centering': 'Centers the geometry at origin by subtracting mean vertex position',
+
+                // Augmentation tooltips
+                'Synonym Replacement': 'Replaces random words with their synonyms',
+                'Random Insertion': 'Inserts random words from the text at random positions',
+                'Flip': 'Applies random horizontal flip to the image',
+                'Rotate': 'Applies random rotation to the image (up to 30 degrees)',
+                'Add Noise': 'Adds random noise or jitter to the data',
+                'Time Stretch': 'Applies time stretching to audio samples (rate=1.2)',
+                'Pitch Shift': 'Applies pitch shifting to audio samples (2 steps)',
+                'Random Rotation': 'Applies random rotation to 3D geometry vertices around all axes',
+                'Random Scaling': 'Applies random scaling (0.75-1.25) to 3D geometry vertices'
+            };
+
+            // Set the tooltip on the icon
+            tooltipIcon.title = tooltips[label] || `Apply ${label}`;
+
+            // Create a text node for the label
+            const labelText = document.createTextNode(label);
 
             div.appendChild(radio);
+            labelElement.appendChild(tooltipIcon);
+            labelElement.appendChild(labelText);
             div.appendChild(labelElement);
             return div;
         }

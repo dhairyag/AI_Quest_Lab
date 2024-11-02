@@ -301,3 +301,85 @@ select, input[type="file"] {
     color: #666;
     text-align: center;
 }
+
+/* Tooltip styling */
+[title] {
+    position: relative;
+    cursor: help;
+}
+
+/* Update the tooltip styling for wider window */
+[title]:hover::before {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    transform: translateY(-10px);
+    padding: 12px 16px;
+    background: rgba(45, 55, 72, 0.95);
+    color: white;
+    border-radius: 6px;
+    font-size: 14px;
+    white-space: pre-wrap;
+    min-width: 250px;
+    max-width: 500px;
+    z-index: 1000;
+    margin-bottom: 5px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    line-height: 1.5;
+    text-align: left;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Style for the tooltip icon - updated with subdued, high contrast colors */
+.tooltip-icon {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    background-color: #e2e8f0;
+    color: #2d3748;
+    border: 1px solid #cbd5e0;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 18px;
+    font-size: 12px;
+    margin-right: 8px;
+    cursor: help;
+    font-style: normal;
+    vertical-align: middle;
+    transition: all 0.2s ease;
+}
+
+/* Hover effect for the icon - more contrast */
+.tooltip-icon:hover {
+    background-color: #2d3748;
+    color: #ffffff;
+    border-color: #2d3748;
+}
+
+/* Update the tooltip arrow position */
+[title]:hover::after {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 10px;
+    transform: translateY(-5px);
+    border: 8px solid transparent;
+    border-top-color: rgba(45, 55, 72, 0.95);
+    margin-bottom: -5px;
+    z-index: 1000;
+}
+
+/* Ensure the tooltip container has proper positioning */
+.tooltip-container {
+    position: relative;
+    display: inline-block;
+}
+
+/* Add some spacing in the processing options */
+#preprocessing-options > div,
+#augmentation-options > div {
+    margin: 8px 0;
+    position: relative;
+}
