@@ -275,7 +275,7 @@ async def augment_data(data_type: str, request: AugmentRequest):
         logger.info(f"Received augment request for {data_type}")
         logger.info(f"Augmentation techniques: {request.augmentation_techniques}")
         
-        # Special handling for audio data
+        # Special handling for audio and 3D geometry data
         if data_type == "audio":
             try:
                 # Extract audio data from the frontend format
@@ -291,6 +291,53 @@ async def augment_data(data_type: str, request: AugmentRequest):
             except Exception as e:
                 logger.error(f"Error parsing audio data: {str(e)}")
                 raise HTTPException(status_code=400, detail="Invalid audio data format")
+        elif data_type == "3d_geometry":
+            try:
+                # Extract geometry data from request
+                if isinstance(request.data, dict):
+                    logger.debug(f"Geometry data keys: {request.data.keys()}")
+                    
+                    if 'vertices' not in request.data or 'faces' not in request.data:
+                        logger.error(f"Missing required geometry data. Got keys: {request.data.keys()}")
+                        raise HTTPException(
+                            status_code=400, 
+                            detail=f"Missing required geometry data. Required: vertices and faces. Got: {list(request.data.keys())}"
+                        )
+                    
+                    augmented_data = {
+                        'vertices': request.data['vertices'],
+                        'faces': request.data['faces']
+                    }
+                else:
+                    logger.error(f"Invalid data type received: {type(request.data)}")
+                    raise HTTPException(
+                        status_code=400, 
+                        detail=f"Expected dict, got {type(request.data)}"
+                    )
+                
+                # Apply augmentation techniques
+                for technique in request.augmentation_techniques:
+                    augmented_data = apply_augmentation(augmented_data, data_type, technique)
+                
+                # Format sample for display
+                sample = {
+                    'image': augmented_data['projection'],
+                    'vertices_count': len(augmented_data['vertices']),
+                    'vertices': augmented_data['vertices'],  # Keep geometry data for further processing
+                    'faces': augmented_data['faces']
+                }
+                
+                return {
+                    "message": "Data augmented successfully!",
+                    "sample": {
+                        "processed": sample
+                    },
+                    "data_type": data_type
+                }
+                
+            except Exception as e:
+                logger.error(f"Error processing 3D geometry: {str(e)}")
+                raise HTTPException(status_code=400, detail=str(e))
         else:
             augmented_data = request.data
 
@@ -302,8 +349,18 @@ async def augment_data(data_type: str, request: AugmentRequest):
                 logger.error(f"Error in augmentation technique '{technique}': {str(e)}")
                 raise HTTPException(status_code=400, detail=f"Error in augmentation technique '{technique}': {str(e)}")
         
-        # For audio, the augmented_data will already be in the correct format for show_sample
-        sample = augmented_data if data_type == "audio" else show_sample(augmented_data, data_type)
+        # Handle sample display based on data type
+        if data_type == "audio":
+            sample = augmented_data  # Directly use the dict for audio
+        elif data_type == "3d_geometry":
+            sample = {
+                'image': augmented_data['projection'],
+                'vertices_count': len(augmented_data['vertices']),
+                'vertices': augmented_data['vertices'],
+                'faces': augmented_data['faces']
+            }
+        else:
+            sample = show_sample(augmented_data, data_type)
         
         return {
             "message": "Data augmented successfully!",
@@ -312,6 +369,8 @@ async def augment_data(data_type: str, request: AugmentRequest):
             },
             "data_type": data_type
         }
+    except HTTPException as he:
+        raise he  # Re-raise HTTP exceptions without logging as errors
     except Exception as e:
         logger.error(f"Error in augmentation: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

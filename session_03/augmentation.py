@@ -1,6 +1,6 @@
 from nltk.corpus import wordnet
 import random
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Dict, Any
 import torch
 import torchvision.transforms as transforms
 from PIL import Image
@@ -10,8 +10,9 @@ import io
 import base64
 import librosa
 import soundfile as sf
+import math
 
-def apply_augmentation(data: Union[str, np.ndarray], data_type: str, technique: str) -> Union[str, np.ndarray]:
+def apply_augmentation(data: Union[str, np.ndarray, Dict], data_type: str, technique: str) -> Union[str, np.ndarray, Dict]:
     """Applies a data augmentation technique."""
     
     if data_type == "text":
@@ -78,6 +79,41 @@ def apply_augmentation(data: Union[str, np.ndarray], data_type: str, technique: 
         except Exception as e:
             print(f"Error in audio augmentation: {str(e)}")
             raise ValueError(f"Error in audio augmentation: {str(e)}")
+    elif data_type == "3d_geometry":
+        try:
+            # Ensure data contains required components
+            if not isinstance(data, dict) or 'vertices' not in data or 'faces' not in data:
+                raise ValueError("Invalid 3D geometry data format")
+            
+            vertices = data['vertices']
+            faces = data['faces']
+            
+            if technique == "Random Rotation":
+                augmented_data = apply_3d_random_rotation(vertices, faces)
+            elif technique == "Random Scaling":
+                augmented_data = apply_3d_random_scaling(vertices, faces)
+            elif technique == "Add Noise":
+                augmented_data = apply_3d_noise(vertices, faces)
+            else:
+                raise ValueError(f"Unsupported augmentation technique for 3D geometry: {technique}")
+            
+            # Generate visualization for the augmented geometry
+            from utils import visualize_3d_geometry
+            img_str = visualize_3d_geometry(
+                np.array(augmented_data['vertices']), 
+                augmented_data['faces']
+            )
+            
+            # Return in the expected format
+            return {
+                'vertices': augmented_data['vertices'],
+                'faces': augmented_data['faces'],
+                'projection': f'data:image/png;base64,{img_str}'
+            }
+            
+        except Exception as e:
+            print(f"Error in 3D geometry augmentation: {str(e)}")
+            raise ValueError(f"Error in 3D geometry augmentation: {str(e)}")
     else:
         raise ValueError(f"Augmentation not implemented for data type: {data_type}")
 
@@ -187,3 +223,72 @@ def audio_to_base64(samples: np.ndarray, sample_rate: int) -> str:
     sf.write(audio_io, samples, sample_rate, format='WAV')
     audio_io.seek(0)
     return base64.b64encode(audio_io.read()).decode()
+
+# Add these new functions for 3D geometry augmentation
+def apply_3d_random_rotation(vertices: List[List[float]], faces: List[List[int]]) -> Dict[str, Any]:
+    """Apply random rotation to 3D geometry vertices."""
+    # Convert vertices to PyTorch tensor
+    vertices_tensor = torch.tensor(vertices, dtype=torch.float32)
+    
+    # Generate random rotation angles for each axis
+    angles = torch.rand(3) * 2 * math.pi
+    
+    # Create rotation matrices
+    Rx = torch.tensor([
+        [1, 0, 0],
+        [0, torch.cos(angles[0]), -torch.sin(angles[0])],
+        [0, torch.sin(angles[0]), torch.cos(angles[0])]
+    ])
+    
+    Ry = torch.tensor([
+        [torch.cos(angles[1]), 0, torch.sin(angles[1])],
+        [0, 1, 0],
+        [-torch.sin(angles[1]), 0, torch.cos(angles[1])]
+    ])
+    
+    Rz = torch.tensor([
+        [torch.cos(angles[2]), -torch.sin(angles[2]), 0],
+        [torch.sin(angles[2]), torch.cos(angles[2]), 0],
+        [0, 0, 1]
+    ])
+    
+    # Apply combined rotation
+    R = Rz @ Ry @ Rx
+    rotated_vertices = vertices_tensor @ R
+    
+    return {
+        'vertices': rotated_vertices.tolist(),
+        'faces': faces
+    }
+
+def apply_3d_random_scaling(vertices: List[List[float]], faces: List[List[int]]) -> Dict[str, Any]:
+    """Apply random scaling to 3D geometry vertices."""
+    # Convert vertices to PyTorch tensor
+    vertices_tensor = torch.tensor(vertices, dtype=torch.float32)
+    
+    # Generate random scaling factors for each axis
+    scale_factors = torch.rand(3) * 0.5 + 0.75  # Random scale between 0.75 and 1.25
+    
+    # Apply scaling
+    scaled_vertices = vertices_tensor * scale_factors
+    
+    return {
+        'vertices': scaled_vertices.tolist(),
+        'faces': faces
+    }
+
+def apply_3d_noise(vertices: List[List[float]], faces: List[List[int]], noise_factor: float = 0.02) -> Dict[str, Any]:
+    """Add random noise to 3D geometry vertices."""
+    # Convert vertices to PyTorch tensor
+    vertices_tensor = torch.tensor(vertices, dtype=torch.float32)
+    
+    # Generate random noise
+    noise = torch.randn_like(vertices_tensor) * noise_factor
+    
+    # Add noise to vertices
+    noisy_vertices = vertices_tensor + noise
+    
+    return {
+        'vertices': noisy_vertices.tolist(),
+        'faces': faces
+    }
