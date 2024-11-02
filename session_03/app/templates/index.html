@@ -259,11 +259,33 @@
                 };
                 
                 console.log('Sending geometry data:', requestData); // Add logging
-            } else {
-                // For other data types
+            } else if (dataType === 'text') {
+                // New handling for 'text' data type
+                const textData = uploadedData.sample.original;
+                if (!textData) {
+                    console.error('Invalid text data structure:', textData);
+                    alert('Invalid text data structure');
+                    return;
+                }
+
                 requestData = {
-                    data: geometryData,
-                    [isPreprocessing ? 'preprocessing_steps' : 'augmentation_techniques']: [selectedOption.value]
+                    data: textData,
+                    preprocessing_steps: isPreprocessing ? [selectedOption.value] : [],
+                    augmentation_techniques: !isPreprocessing ? [selectedOption.value] : []
+                };
+            } else if (dataType === 'image') {
+                // New handling for 'image' data type
+                const imageData = uploadedData.sample.original;
+                if (!imageData) {
+                    console.error('Invalid image data structure:', imageData);
+                    alert('Invalid image data structure');
+                    return;
+                }
+
+                requestData = {
+                    data: imageData,
+                    preprocessing_steps: isPreprocessing ? [selectedOption.value] : [],
+                    augmentation_techniques: !isPreprocessing ? [selectedOption.value] : []
                 };
             }
 
