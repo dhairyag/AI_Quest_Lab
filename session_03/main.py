@@ -120,7 +120,9 @@ async def upload_data(data_type: str, file: UploadFile = File(...)):
             if data_type == "3d_geometry":
                 sample = {
                     'image': data['projection'],
-                    'vertices_count': len(data['vertices'])
+                    'vertices_count': len(data['vertices']),
+                    'vertices': data['vertices'],
+                    'faces': data['faces']
                 }
             else:
                 sample = show_sample(data, data_type)
@@ -163,7 +165,9 @@ async def preprocess_data(data_type: str, request: PreprocessRequest):
     try:
         logger.info(f"Received preprocess request for {data_type}")
         logger.info(f"Preprocessing steps: {request.preprocessing_steps}")
-        
+        logger.debug(f"Request data: {request.data}")
+
+        # Special handling for audio and 3D geometry data
         if data_type == "audio":
             try:
                 # Extract audio data from the frontend format
@@ -179,10 +183,57 @@ async def preprocess_data(data_type: str, request: PreprocessRequest):
             except Exception as e:
                 logger.error(f"Error parsing audio data: {str(e)}")
                 raise HTTPException(status_code=400, detail="Invalid audio data format")
+        elif data_type == "3d_geometry":
+            try:
+                # Extract geometry data from request
+                if isinstance(request.data, dict):
+                    logger.debug(f"Geometry data keys: {request.data.keys()}")
+                    
+                    if 'vertices' not in request.data or 'faces' not in request.data:
+                        logger.error(f"Missing required geometry data. Got keys: {request.data.keys()}")
+                        raise HTTPException(
+                            status_code=400, 
+                            detail=f"Missing required geometry data. Required: vertices and faces. Got: {list(request.data.keys())}"
+                        )
+                    
+                    processed_data = {
+                        'vertices': request.data['vertices'],
+                        'faces': request.data['faces']
+                    }
+                else:
+                    logger.error(f"Invalid data type received: {type(request.data)}")
+                    raise HTTPException(
+                        status_code=400, 
+                        detail=f"Expected dict, got {type(request.data)}"
+                    )
+                
+                # Apply preprocessing steps
+                for step in request.preprocessing_steps:
+                    processed_data = apply_preprocessing(processed_data, data_type, step)
+                
+                # Format sample for display
+                sample = {
+                    'image': processed_data['projection'],
+                    'vertices_count': len(processed_data['vertices']),
+                    'vertices': processed_data['vertices'],  # Keep geometry data for further processing
+                    'faces': processed_data['faces']
+                }
+                
+                return {
+                    "message": "Data preprocessed successfully!",
+                    "sample": {
+                        "processed": sample
+                    },
+                    "data_type": data_type
+                }
+                
+            except Exception as e:
+                logger.error(f"Error processing 3D geometry: {str(e)}")
+                raise HTTPException(status_code=400, detail=str(e))
         else:
             processed_data = request.data
 
-        # Apply preprocessing steps
+        # Apply preprocessing steps using the imported function
         for step in request.preprocessing_steps:
             try:
                 processed_data = apply_preprocessing(processed_data, data_type, step)
@@ -190,9 +241,14 @@ async def preprocess_data(data_type: str, request: PreprocessRequest):
                 logger.error(f"Error in preprocessing step '{step}': {str(e)}")
                 raise HTTPException(status_code=400, detail=f"Error in preprocessing step '{step}': {str(e)}")
         
-        # Check if the final processed_data is a dict (e.g., from MFCC)
+        # Handle sample display based on data type
         if data_type == "audio" and isinstance(processed_data, dict):
             sample = processed_data  # Directly use the dict for spectrogram
+        elif data_type == "3d_geometry":
+            sample = {
+                'image': processed_data['projection'],
+                'vertices_count': len(processed_data['vertices'])
+            }
         else:
             sample = show_sample(processed_data, data_type)
         
@@ -203,6 +259,8 @@ async def preprocess_data(data_type: str, request: PreprocessRequest):
             },
             "data_type": data_type
         }
+    except HTTPException as he:
+        raise he  # Re-raise HTTP exceptions without logging as errors
     except Exception as e:
         logger.error(f"Error in preprocessing: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

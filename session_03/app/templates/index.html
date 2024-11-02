@@ -246,10 +246,23 @@
                 };
                 
                 console.log('Sending audio request:', requestData);
+            } else if (dataType === '3d_geometry') {
+                // Fix: Get the complete geometry data from the original upload
+                const geometryData = {
+                    vertices: uploadedData.sample.original.vertices,  // Access vertices from the correct path
+                    faces: uploadedData.sample.original.faces        // Access faces from the correct path
+                };
+                
+                requestData = {
+                    data: geometryData,
+                    [isPreprocessing ? 'preprocessing_steps' : 'augmentation_techniques']: [selectedOption.value]
+                };
+                
+                console.log('Sending geometry data:', requestData); // Add logging
             } else {
                 // For other data types
                 requestData = {
-                    data: uploadedData.sample.original,
+                    data: geometryData,
                     [isPreprocessing ? 'preprocessing_steps' : 'augmentation_techniques']: [selectedOption.value]
                 };
             }
@@ -322,6 +335,10 @@
                 const img = document.createElement('img');
                 img.src = data.image;
                 img.className = 'geometry-projection';
+                
+                // Store the complete geometry data in the container's dataset
+                wrapper.dataset.vertices = JSON.stringify(data.vertices);
+                wrapper.dataset.faces = JSON.stringify(data.faces);
                 
                 // Add vertex count information
                 const info = document.createElement('div');

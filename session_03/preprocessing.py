@@ -13,6 +13,7 @@ import soundfile as sf
 import librosa
 import cv2  # If using MFCC visualization
 import matplotlib.pyplot as plt
+from utils import visualize_3d_geometry
 
 def audio_to_base64(samples: np.ndarray, sample_rate: int) -> str:
     """
@@ -277,6 +278,40 @@ def apply_preprocessing(data: Any, data_type: str, step: str) -> Any:
             if isinstance(data, dict):
                 print(f"Dictionary keys: {data.keys()}")
             raise ValueError(f"Error processing audio: {str(e)}")
+    elif data_type == "3d_geometry":
+        # Ensure data is in the correct format
+        if not isinstance(data, dict) or 'vertices' not in data or 'faces' not in data:
+            raise ValueError("Invalid 3D geometry data format")
+            
+        # Convert vertices to numpy array if not already
+        vertices = np.array(data['vertices'])
+        faces = data['faces']
+        
+        if step == "Normalize":
+            # Scale to unit sphere
+            center = vertices.mean(axis=0)
+            vertices = vertices - center
+            max_dist = np.max(np.linalg.norm(vertices, axis=1))
+            if max_dist > 0:
+                vertices = vertices / max_dist
+            
+        elif step == "Centering":
+            # Center at origin
+            center = vertices.mean(axis=0)
+            vertices = vertices - center
+        else:
+            raise ValueError(f"Unsupported preprocessing step for 3D geometry: {step}")
+            
+        # Generate new visualization
+        img_str = visualize_3d_geometry(vertices, faces)
+        
+        # Return consistent format
+        return {
+            'vertices': vertices.tolist(),
+            'faces': faces,
+            'projection': f'data:image/png;base64,{img_str}'
+        }
+        
     else:
         raise ValueError(f"Preprocessing not implemented for data type: {data_type}")
 
