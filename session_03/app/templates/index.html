@@ -182,20 +182,33 @@
             tooltipIcon.className = 'tooltip-icon';
             tooltipIcon.textContent = 'ⓘ';  // Info icon
             
+            // Get the current data type from the select element
+            const dataType = document.getElementById('data-type').value;
+            
             // Add tooltips based on the processing type and label
             const tooltips = {
-                // Preprocessing tooltips
+                // Text preprocessing tooltips
                 'Tokenize': 'Tokenizes text using a pre-trained BERT tokenizer',
                 'Pad': 'Pads or truncates a sequence of tokens to a fixed length',
                 'Embed': 'Maps tokens to vectors using a pre-trained BERT model',
                 'Remove Punctuation': 'Removes all punctuation marks from the text',
+                
+                // Image preprocessing tooltips
                 'Resize': 'Resizes image to a target size (224x224 by default)',
-                'Normalize': 'Normalizes image using ImageNet statistics',
+                'Normalize': {
+                    'image': 'Normalizes image using ImageNet statistics (mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])',
+                    'audio': 'Normalizes audio using peak or RMS normalization methods to standardize volume levels',
+                    '3d_geometry': 'Scales vertices to fit within a unit sphere and centers at origin'
+                },
                 'Grayscale': 'Converts image to grayscale',
                 'ML Preprocess': 'Applies standard ML preprocessing pipeline including resize, normalization, and optional grayscale conversion',
+                
+                // Audio preprocessing tooltips
                 'MFCC': 'Calculates Mel-frequency cepstral coefficients (MFCC) features',
                 'Resample': 'Resamples audio to a specified target sample rate (16000Hz by default)',
                 'Trim Silence': 'Trims leading and trailing silence from audio',
+                
+                // 3D geometry preprocessing tooltips
                 'Centering': 'Centers the geometry at origin by subtracting mean vertex position',
 
                 // Augmentation tooltips
@@ -203,15 +216,29 @@
                 'Random Insertion': 'Inserts random words from the text at random positions',
                 'Flip': 'Applies random horizontal flip to the image',
                 'Rotate': 'Applies random rotation to the image (up to 30 degrees)',
-                'Add Noise': 'Adds random noise or jitter to the data',
+                'Add Noise': {
+                    'image': 'Applies color jittering to adjust brightness, contrast, saturation, and hue',
+                    'audio': 'Adds random background noise to audio samples (noise factor: 0.005)',
+                    '3d_geometry': 'Adds random noise to 3D geometry vertices (noise factor: 0.02)'
+                },
                 'Time Stretch': 'Applies time stretching to audio samples (rate=1.2)',
                 'Pitch Shift': 'Applies pitch shifting to audio samples (2 steps)',
                 'Random Rotation': 'Applies random rotation to 3D geometry vertices around all axes',
                 'Random Scaling': 'Applies random scaling (0.75-1.25) to 3D geometry vertices'
             };
 
+            // Get the tooltip text based on label and data type
+            let tooltipText;
+            if (tooltips[label] && typeof tooltips[label] === 'object') {
+                // For labels that have different descriptions based on data type
+                tooltipText = tooltips[label][dataType];
+            } else {
+                // For labels that have a single description
+                tooltipText = tooltips[label];
+            }
+
             // Set the tooltip on the icon
-            tooltipIcon.title = tooltips[label] || `Apply ${label}`;
+            tooltipIcon.title = tooltipText || `Apply ${label}`;
 
             // Create a text node for the label
             const labelText = document.createTextNode(label);
