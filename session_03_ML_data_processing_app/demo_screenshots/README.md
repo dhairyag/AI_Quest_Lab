@@ -12,8 +12,8 @@ This folder contains screenshots of the DataAlchemy application in action. Only 
 
 ### Image
 
-![Image Processing](demo_image_processing.png)
+![Image Processing](demo_image_precessing.png)
 
 ### 3D Geometry
 
-![3D Geometry Processing](demo_3d_geometry.png)
+![3D Geometry Processing](demo_3D_geom.png)
