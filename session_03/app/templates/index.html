@@ -188,43 +188,43 @@
             // Add tooltips based on the processing type and label
             const tooltips = {
                 // Text preprocessing tooltips
-                'Tokenize': 'Tokenizes text using a pre-trained BERT tokenizer',
-                'Pad': 'Pads or truncates a sequence of tokens to a fixed length',
-                'Embed': 'Maps tokens to vectors using a pre-trained BERT model',
-                'Remove Punctuation': 'Removes all punctuation marks from the text',
+                'Tokenize': 'Tokenizes text using BERT tokenizer (bert-base-uncased). Splits text into subword tokens that the model can understand.',
+                'Pad': 'Pads shorter sequences with [PAD] tokens or truncates longer sequences to a fixed length of 16 tokens for consistent input size.',
+                'Embed': 'Maps tokens to 768-dimensional vectors using BERT embeddings. Returns tensor of shape (max_len, 768) capturing semantic meaning.',
+                'Remove Punctuation': 'Removes all punctuation marks from text using Python string.punctuation translation table.',
                 
                 // Image preprocessing tooltips
-                'Resize': 'Resizes image to a target size (224x224 by default)',
+                'Resize': 'Resizes image to 224x224 pixels using PyTorch transforms.Resize. Maintains aspect ratio and uses bilinear interpolation.',
                 'Normalize': {
-                    'image': 'Normalizes image using ImageNet statistics (mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])',
-                    'audio': 'Normalizes audio using peak or RMS normalization methods to standardize volume levels',
-                    '3d_geometry': 'Scales vertices to fit within a unit sphere and centers at origin'
+                    'image': 'Normalizes image using ImageNet statistics (mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]). Converts to tensor and scales pixel values.',
+                    'audio': 'Normalizes audio amplitude using peak (scales by max absolute value) or RMS (root mean square) normalization to standardize volume.',
+                    '3d_geometry': 'Scales vertices to unit sphere by centering at origin and dividing by max distance. Uses PyTorch tensor operations.'
                 },
-                'Grayscale': 'Converts image to grayscale',
-                'ML Preprocess': 'Applies standard ML preprocessing pipeline including resize, normalization, and optional grayscale conversion',
+                'Grayscale': 'Converts RGB image to single-channel grayscale using PyTorch transforms.Grayscale. Returns tensor with 1 channel.',
+                'ML Preprocess': 'Full ML pipeline: Resize to 224x224, convert to tensor, normalize with ImageNet stats. Optional grayscale conversion.',
                 
                 // Audio preprocessing tooltips
-                'MFCC': 'Calculates Mel-frequency cepstral coefficients (MFCC) features',
-                'Resample': 'Resamples audio to a specified target sample rate (16000Hz by default)',
-                'Trim Silence': 'Trims leading and trailing silence from audio',
+                'MFCC': 'Calculates 40 Mel-frequency cepstral coefficients using librosa.feature.mfcc with 2048 FFT window, 512 hop length. Returns spectrogram visualization.',
+                'Resample': 'Resamples audio to 16kHz sample rate using librosa.resample with Kaiser windowed sinc filter. Useful for ML models expecting fixed sample rate.',
+                'Trim Silence': 'Trims leading/trailing silence below 20dB threshold using librosa.effects.trim. Returns trimmed audio without silent segments.',
                 
                 // 3D geometry preprocessing tooltips
-                'Centering': 'Centers the geometry at origin by subtracting mean vertex position',
+                'Centering': 'Centers geometry by subtracting mean vertex position using PyTorch tensor operations. Ensures model is centered at coordinate origin.',
 
                 // Augmentation tooltips
-                'Synonym Replacement': 'Replaces random words with their synonyms',
-                'Random Insertion': 'Inserts random words from the text at random positions',
-                'Flip': 'Applies random horizontal flip to the image',
-                'Rotate': 'Applies random rotation to the image (up to 30 degrees)',
+                'Synonym Replacement': 'Replaces random words with WordNet synonyms with 10% probability. Maintains semantic meaning while adding variety.',
+                'Random Insertion': 'Randomly inserts words from text at new positions with 10% probability relative to text length. Increases text length and variety.',
+                'Flip': 'Applies horizontal flip with 100% probability using PyTorch RandomHorizontalFlip transform. Simulates mirror images.',
+                'Rotate': 'Randomly rotates image up to 30 degrees using PyTorch RandomRotation. Helps model learn rotation invariance.',
                 'Add Noise': {
-                    'image': 'Applies color jittering to adjust brightness, contrast, saturation, and hue',
-                    'audio': 'Adds random background noise to audio samples (noise factor: 0.005)',
-                    '3d_geometry': 'Adds random noise to 3D geometry vertices (noise factor: 0.02)'
+                    'image': 'Applies color jitter: brightness ±20%, contrast ±20%, saturation ±20%, hue ±10%. Makes model robust to color variations.',
+                    'audio': 'Adds Gaussian noise with 0.005 factor to waveform. Simulates recording conditions and improves robustness.',
+                    '3d_geometry': 'Adds random Gaussian noise with 0.02 factor to vertex positions using PyTorch randn. Simulates measurement noise.'
                 },
-                'Time Stretch': 'Applies time stretching to audio samples (rate=1.2)',
-                'Pitch Shift': 'Applies pitch shifting to audio samples (2 steps)',
-                'Random Rotation': 'Applies random rotation to 3D geometry vertices around all axes',
-                'Random Scaling': 'Applies random scaling (0.75-1.25) to 3D geometry vertices'
+                'Time Stretch': 'Stretches audio duration by 20% using librosa.effects.time_stretch. Simulates tempo variations while preserving pitch.',
+                'Pitch Shift': 'Shifts pitch up 2 semitones using librosa.effects.pitch_shift. Simulates different speakers/instruments while preserving tempo.',
+                'Random Rotation': 'Applies random 3D rotation around X,Y,Z axes using PyTorch rotation matrices. Full 360° rotation possible.',
+                'Random Scaling': 'Randomly scales vertices by factor between 0.75-1.25 using PyTorch operations. Simulates size variations.'
             };
 
             // Get the tooltip text based on label and data type
