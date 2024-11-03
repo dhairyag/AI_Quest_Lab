@@ -1,19 +1,19 @@
-## Demo Screenshots
+# Demo Screenshots
 
 This folder contains screenshots of the DataAlchemy application in action. Only one screenshot is provided for each type of data. 
 
-### Text
+## Text
 
 ![Text Processing](demo_text.png)
 
-### Audio
+## Audio
 
 ![Audio Processing](demo_audio.png)
 
-### Image
+## Image
 
-![Image Processing](demo_image_precessing.png)
+![Image Processing](demo_image_processing.png)
 
-### 3D Geometry
+## 3D Geometry
 
 ![3D Geometry Processing](demo_3D_geom.png)
