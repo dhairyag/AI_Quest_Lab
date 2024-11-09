@@ -151,13 +151,14 @@ def save_loss_plot():
     with open('static/plot.json', 'w') as f:
         json.dump({'plot': plot_data}, f)
 
-def evaluate_random_samples():
-    logging.info("Evaluating random samples...")
+def evaluate_random_samples(model, model_name):
+    """Evaluate random samples for a specific model"""
+    logging.info(f"Evaluating random samples for {model_name}...")
     model.eval()
-    test_samples = []
+    samples = []
     with torch.no_grad():
-        # Get 10 random samples
-        indices = random.sample(range(len(test_dataset)), 10)
+        # Get 5 random samples
+        indices = random.sample(range(len(test_dataset)), 5)
         for idx in indices:
             image, label = test_dataset[idx]
             image = image.unsqueeze(0).to(device)
@@ -174,14 +175,31 @@ def evaluate_random_samples():
             plt.close()
             
             img_data = base64.b64encode(buf.getvalue()).decode('utf-8')
-            test_samples.append({
+            samples.append({
                 'image': img_data,
                 'predicted': pred,
-                'actual': label
+                'actual': label,
+                'model': model_name
             })
-    
-    with open('static/test_samples.json', 'w') as f:
-        json.dump(test_samples, f)
+    return samples
+
+def save_test_samples():
+    """Save test samples from both models"""
+    try:
+        # Get samples from both models
+        samples1 = evaluate_random_samples(model1_trainer.model, "Model 1")
+        samples2 = evaluate_random_samples(model2_trainer.model, "Model 2")
+        
+        # Combine samples
+        all_samples = {
+            'model1': samples1,
+            'model2': samples2
+        }
+        
+        with open('static/test_samples.json', 'w') as f:
+            json.dump(all_samples, f)
+    except Exception as e:
+        logging.error(f"Error in save_test_samples: {str(e)}")
 
 class ModelTrainer:
     def __init__(self, kernel_config, model_name):
@@ -328,6 +346,9 @@ def train_models(config1, config2):
             
             # Save comparison plots
             save_comparison_plot()
+            
+            # Save test samples at the end of each epoch
+            save_test_samples()
             
             # Save final status for both models
             save_training_status({
