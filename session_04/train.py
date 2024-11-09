@@ -64,6 +64,8 @@ history = {'train_loss': [], 'test_accuracy': []}
 def train_epoch(epoch, pbar):
     model.train()
     total_loss = 0
+    correct = 0
+    total = 0
     
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
@@ -74,11 +76,18 @@ def train_epoch(epoch, pbar):
         optimizer.step()
         total_loss += loss.item()
         
+        # Calculate accuracy for this batch
+        pred = output.argmax(dim=1, keepdim=True)
+        correct += pred.eq(target.view_as(pred)).sum().item()
+        total += len(data)
+        current_acc = 100. * correct / total
+        
         # Update progress bar
         pbar.update(1)
         pbar.set_postfix({
             'epoch': f'{epoch}/{EPOCHS}',
-            'loss': f'{loss.item():.4f}'
+            'loss': f'{loss.item():.4f}',
+            'acc': f'{current_acc:.2f}%'
         })
         
         if batch_idx % 10 == 0:  # Reduced frequency of status updates
@@ -88,12 +97,14 @@ def train_epoch(epoch, pbar):
                     'epoch': epoch,
                     'batch': batch_idx,
                     'loss': loss.item(),
+                    'accuracy': current_acc,
                     'progress': 100. * ((epoch-1) * len(train_loader) + batch_idx) / (EPOCHS * len(train_loader))
                 }, f)
     
     avg_loss = total_loss / len(train_loader)
+    final_acc = 100. * correct / total
     history['train_loss'].append(avg_loss)
-    return avg_loss
+    return avg_loss, final_acc
 
 def test():
     model.eval()
@@ -177,16 +188,20 @@ def main():
     # Create single progress bar for entire training
     with tqdm(total=total_steps, desc='Training Progress') as pbar:
         for epoch in range(1, EPOCHS + 1):
-            train_loss = train_epoch(epoch, pbar)
-            test_loss, accuracy = test()
-            #logging.info(f'Epoch: {epoch}')
-            #logging.info(f'Train Loss: {train_loss:.4f}')
-            #logging.info(f'Test Loss: {test_loss:.4f}')
-            #logging.info(f'Test Accuracy: {accuracy:.2f}%')
+            train_loss, train_acc = train_epoch(epoch, pbar)
+            test_loss, test_acc = test()
+            
+            # Log epoch results
+            logging.info(
+                f'Epoch: {epoch}/{EPOCHS} | '
+                f'Train Loss: {train_loss:.4f} | '
+                f'Train Acc: {train_acc:.2f}% | '
+                f'Test Loss: {test_loss:.4f} | '
+                f'Test Acc: {test_acc:.2f}%'
+            )
             save_loss_plot()
     
     logging.info("Training completed. Saving model...")
-    # Save model
     torch.save(model.state_dict(), 'mnist_cnn.pth')
     
     # Evaluate random samples
