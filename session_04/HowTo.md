@@ -5,13 +5,21 @@ A real-time web-based monitoring system for training a CNN on the MNIST dataset.
 ## Project Structure 
 project/
 ├── model.py # CNN model architecture
+
 ├── train.py # Training script with monitoring
+
 ├── server.py # Flask server for web interface
+
 ├── static/ # Static files directory
+
 │ ├── index.html # Web interface
+
 │ ├── training_status.json # Current training status
+
 │ ├── plot.json # Training plots
+
 │ └── test_samples.json # Test predictions
+
 └── mnist_cnn.pth # Saved model weights (after training)
 
 
