@@ -135,11 +135,11 @@ class ModelTrainer:
         self.model = MNISTNet(kernel_config).to(device)
         self.model_name = model_name
         
-        # Use optimizer from global config
+        # Use optimizer and learning rate from global config
         if global_config['optimizer'].lower() == 'adam':
-            self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+            self.optimizer = optim.Adam(self.model.parameters(), lr=global_config['learning_rate'])
         else:  # SGD
-            self.optimizer = optim.SGD(self.model.parameters(), lr=0.01)
+            self.optimizer = optim.SGD(self.model.parameters(), lr=global_config['learning_rate'])
         
         self.batch_size = global_config['batch_size']
         self.epochs = global_config['epochs']
@@ -284,7 +284,8 @@ def train_models(config1, config2):
         global_config = {
             'optimizer': config1['optimizer'],
             'batch_size': int(config1['batch_size']),
-            'epochs': int(config1['epochs'])
+            'epochs': int(config1['epochs']),
+            'learning_rate': float(config1['learning_rate'])
         }
         
         # Update data loaders with new batch size
