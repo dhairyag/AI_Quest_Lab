@@ -9,6 +9,14 @@ import random
 import matplotlib.pyplot as plt
 import base64
 from io import BytesIO
+from tqdm import tqdm
+import logging
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 # Check for CUDA or MPS availability
 device = (
@@ -16,11 +24,19 @@ device = (
     else torch.device("mps") if torch.backends.mps.is_available()
     else torch.device("cpu")
 )
+logging.info(f"Using device: {device}")
+if device.type == "cuda":
+    logging.info(f"GPU Name: {torch.cuda.get_device_name(0)}")
+    logging.info(f"GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
 
 # Training settings
-BATCH_SIZE = 64
+BATCH_SIZE = 512
 EPOCHS = 10
 LEARNING_RATE = 0.01
+
+logging.info(f"Batch Size: {BATCH_SIZE}")
+logging.info(f"Learning Rate: {LEARNING_RATE}")
+logging.info(f"Epochs: {EPOCHS}")
 
 # Data transformations
 transform = transforms.Compose([
@@ -29,11 +45,13 @@ transform = transforms.Compose([
 ])
 
 # Load MNIST dataset
+logging.info("Loading MNIST dataset...")
 train_dataset = datasets.MNIST('data', train=True, download=True, transform=transform)
 test_dataset = datasets.MNIST('data', train=False, transform=transform)
 
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=True)
+logging.info(f"Dataset loaded. Training samples: {len(train_dataset)}, Test samples: {len(test_dataset)}")
 
 # Initialize model, optimizer, and loss function
 model = MNISTNet().to(device)
@@ -46,7 +64,9 @@ history = {'train_loss': [], 'test_accuracy': []}
 def train_epoch(epoch):
     model.train()
     total_loss = 0
-    for batch_idx, (data, target) in enumerate(train_loader):
+    pbar = tqdm(train_loader, desc=f'Epoch {epoch}/{EPOCHS}')
+    
+    for batch_idx, (data, target) in enumerate(pbar):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)
@@ -55,10 +75,10 @@ def train_epoch(epoch):
         optimizer.step()
         total_loss += loss.item()
         
-        if batch_idx % 100 == 0:
-            print(f'Train Epoch: {epoch} [{batch_idx * len(data)}/{len(train_loader.dataset)} '
-                  f'({100. * batch_idx / len(train_loader):.0f}%)]\tLoss: {loss.item():.6f}')
-            
+        # Update progress bar
+        pbar.set_postfix({'loss': f'{loss.item():.4f}'})
+        
+        if batch_idx % 10 == 0:  # Reduced frequency of status updates
             # Save current training status
             with open('static/training_status.json', 'w') as f:
                 json.dump({
@@ -77,7 +97,7 @@ def test():
     test_loss = 0
     correct = 0
     with torch.no_grad():
-        for data, target in test_loader:
+        for data, target in tqdm(test_loader, desc='Testing'):
             data, target = data.to(device), target.to(device)
             output = model(data)
             test_loss += criterion(output, target).item()
@@ -113,6 +133,7 @@ def save_loss_plot():
         json.dump({'plot': plot_data}, f)
 
 def evaluate_random_samples():
+    logging.info("Evaluating random samples...")
     model.eval()
     test_samples = []
     with torch.no_grad():
@@ -145,21 +166,24 @@ def evaluate_random_samples():
 
 def main():
     Path('static').mkdir(exist_ok=True)
+    logging.info("Starting training...")
     
     for epoch in range(1, EPOCHS + 1):
         train_loss = train_epoch(epoch)
         test_loss, accuracy = test()
-        print(f'Epoch: {epoch}')
-        print(f'Train Loss: {train_loss:.4f}')
-        print(f'Test Loss: {test_loss:.4f}')
-        print(f'Test Accuracy: {accuracy:.2f}%')
+        logging.info(f'Epoch: {epoch}')
+        logging.info(f'Train Loss: {train_loss:.4f}')
+        logging.info(f'Test Loss: {test_loss:.4f}')
+        logging.info(f'Test Accuracy: {accuracy:.2f}%')
         save_loss_plot()
     
+    logging.info("Training completed. Saving model...")
     # Save model
     torch.save(model.state_dict(), 'mnist_cnn.pth')
     
     # Evaluate random samples
     evaluate_random_samples()
+    logging.info("Evaluation completed. You can check the results in the web interface.")
 
 if __name__ == '__main__':
-    main() 
+    main()
