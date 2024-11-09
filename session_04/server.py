@@ -1,12 +1,32 @@
 from flask import Flask, send_from_directory, request, jsonify
 import json
 from threading import Thread
-from train import train_models  # Import the train_models function
+from train import train_models
+import os
 
 app = Flask(__name__)
 
+def cleanup_old_files():
+    """Clean up old JSON files from static folder"""
+    json_files = [
+        'static/plot.json',
+        'static/test_samples.json',
+        'static/training_status_Model 1.json',
+        'static/training_status_Model 2.json',
+        'static/model_info_Model 1.json',
+        'static/model_info_Model 2.json'
+    ]
+    
+    for file_path in json_files:
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        except Exception as e:
+            print(f"Error removing {file_path}: {str(e)}")
+
 @app.route('/')
 def index():
+    cleanup_old_files()
     return send_from_directory('static', 'index.html')
 
 @app.route('/static/<path:path>')
@@ -52,13 +72,16 @@ def get_test_samples():
 
 @app.route('/start_training', methods=['POST'])
 def start_training():
+    # Clean up old files before starting new training
+    cleanup_old_files()
+    
     data = request.json
     config1 = data['config1']
     config2 = data['config2']
     
     # Start training in a separate thread
     thread = Thread(target=train_models, args=(config1, config2))
-    thread.daemon = True  # Make thread daemon so it dies when main thread dies
+    thread.daemon = True
     thread.start()
     
     return jsonify({'status': 'Training started'})
@@ -70,28 +93,6 @@ def get_model_info(model_name):
             return json.load(f)
     except FileNotFoundError:
         return {'error': 'Model information not available yet'}
-
-@app.route('/train', methods=['POST'])
-def train():
-    data = request.get_json()
-    
-    # Extract the new training parameters
-    optimizer = data.get('optimizer', 'adam')
-    batch_size = data.get('batch_size', 512)
-    epochs = data.get('epochs', 10)
-    
-    # Pass these parameters to your training function
-    training_config = {
-        'optimizer': optimizer,
-        'batch_size': batch_size,
-        'epochs': epochs,
-        # ... other existing config parameters ...
-    }
-    
-    # Update your training call
-    train_model(training_config)
-    
-    return jsonify({'status': 'success'})
 
 if __name__ == '__main__':
     app.run(debug=True, use_reloader=False)  # Disable reloader when using threads
