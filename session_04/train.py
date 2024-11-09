@@ -61,12 +61,11 @@ criterion = nn.CrossEntropyLoss()
 # Training history
 history = {'train_loss': [], 'test_accuracy': []}
 
-def train_epoch(epoch):
+def train_epoch(epoch, pbar):
     model.train()
     total_loss = 0
-    pbar = tqdm(train_loader, desc=f'Epoch {epoch}/{EPOCHS}')
     
-    for batch_idx, (data, target) in enumerate(pbar):
+    for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)
@@ -76,7 +75,11 @@ def train_epoch(epoch):
         total_loss += loss.item()
         
         # Update progress bar
-        pbar.set_postfix({'loss': f'{loss.item():.4f}'})
+        pbar.update(1)
+        pbar.set_postfix({
+            'epoch': f'{epoch}/{EPOCHS}',
+            'loss': f'{loss.item():.4f}'
+        })
         
         if batch_idx % 10 == 0:  # Reduced frequency of status updates
             # Save current training status
@@ -85,7 +88,7 @@ def train_epoch(epoch):
                     'epoch': epoch,
                     'batch': batch_idx,
                     'loss': loss.item(),
-                    'progress': 100. * batch_idx / len(train_loader)
+                    'progress': 100. * ((epoch-1) * len(train_loader) + batch_idx) / (EPOCHS * len(train_loader))
                 }, f)
     
     avg_loss = total_loss / len(train_loader)
@@ -97,7 +100,7 @@ def test():
     test_loss = 0
     correct = 0
     with torch.no_grad():
-        for data, target in tqdm(test_loader, desc='Testing'):
+        for data, target in test_loader:
             data, target = data.to(device), target.to(device)
             output = model(data)
             test_loss += criterion(output, target).item()
@@ -168,14 +171,19 @@ def main():
     Path('static').mkdir(exist_ok=True)
     logging.info("Starting training...")
     
-    for epoch in range(1, EPOCHS + 1):
-        train_loss = train_epoch(epoch)
-        test_loss, accuracy = test()
-        logging.info(f'Epoch: {epoch}')
-        logging.info(f'Train Loss: {train_loss:.4f}')
-        logging.info(f'Test Loss: {test_loss:.4f}')
-        logging.info(f'Test Accuracy: {accuracy:.2f}%')
-        save_loss_plot()
+    # Calculate total steps
+    total_steps = EPOCHS * len(train_loader)
+    
+    # Create single progress bar for entire training
+    with tqdm(total=total_steps, desc='Training Progress') as pbar:
+        for epoch in range(1, EPOCHS + 1):
+            train_loss = train_epoch(epoch, pbar)
+            test_loss, accuracy = test()
+            #logging.info(f'Epoch: {epoch}')
+            #logging.info(f'Train Loss: {train_loss:.4f}')
+            #logging.info(f'Test Loss: {test_loss:.4f}')
+            #logging.info(f'Test Accuracy: {accuracy:.2f}%')
+            save_loss_plot()
     
     logging.info("Training completed. Saving model...")
     # Save model
