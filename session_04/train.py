@@ -34,15 +34,6 @@ if device.type == "cuda":
     logging.info(f"GPU Name: {torch.cuda.get_device_name(0)}")
     logging.info(f"GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
 
-# Training settings
-BATCH_SIZE = 512
-EPOCHS = 10
-LEARNING_RATE = 0.01
-
-logging.info(f"Batch Size: {BATCH_SIZE}")
-logging.info(f"Learning Rate: {LEARNING_RATE}")
-logging.info(f"Epochs: {EPOCHS}")
-
 # Data transformations
 transform = transforms.Compose([
     transforms.ToTensor(),
@@ -54,13 +45,13 @@ logging.info("Loading MNIST dataset...")
 train_dataset = datasets.MNIST('data', train=True, download=True, transform=transform)
 test_dataset = datasets.MNIST('data', train=False, transform=transform)
 
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=True)
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=512, shuffle=True)
+test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=512, shuffle=True)
 logging.info(f"Dataset loaded. Training samples: {len(train_dataset)}, Test samples: {len(test_dataset)}")
 
 # Initialize model, optimizer, and loss function
 model = MNISTNet().to(device)
-optimizer = optim.SGD(model.parameters(), lr=LEARNING_RATE)
+optimizer = optim.SGD(model.parameters(), lr=0.01)
 criterion = nn.CrossEntropyLoss()
 
 # Training history
@@ -140,10 +131,19 @@ def save_test_samples():
         logging.error(f"Error in save_test_samples: {str(e)}")
 
 class ModelTrainer:
-    def __init__(self, kernel_config, model_name):
+    def __init__(self, kernel_config, model_name, global_config):
         self.model = MNISTNet(kernel_config).to(device)
         self.model_name = model_name
-        self.optimizer = optim.Adam(self.model.parameters(), lr=LEARNING_RATE)
+        
+        # Use optimizer from global config
+        if global_config['optimizer'].lower() == 'adam':
+            self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+        else:  # SGD
+            self.optimizer = optim.SGD(self.model.parameters(), lr=0.01)
+        
+        self.batch_size = global_config['batch_size']
+        self.epochs = global_config['epochs']
+        
         self.history = {
             'train_loss': [],
             'test_accuracy': [],
@@ -185,7 +185,7 @@ class ModelTrainer:
                     'batch': batch_idx,
                     'loss': loss.item(),
                     'accuracy': current_acc,
-                    'progress': 100. * ((epoch-1) * len(train_loader) + batch_idx) / (EPOCHS * len(train_loader)),
+                    'progress': 100. * ((epoch-1) * len(train_loader) + batch_idx) / (self.epochs * len(train_loader)),
                     'kernel_config': self.history['kernel_config']
                 }
                 save_training_status(status)
@@ -280,15 +280,36 @@ def train_models(config1, config2):
     global model1_trainer, model2_trainer
     
     try:
+        # Extract global training parameters
+        global_config = {
+            'optimizer': config1['optimizer'],
+            'batch_size': int(config1['batch_size']),
+            'epochs': int(config1['epochs'])
+        }
+        
+        # Update data loaders with new batch size
+        global train_loader, test_loader  # Make them global so they can be used by other functions
+        train_loader = torch.utils.data.DataLoader(
+            train_dataset, 
+            batch_size=global_config['batch_size'], 
+            shuffle=True
+        )
+        test_loader = torch.utils.data.DataLoader(
+            test_dataset, 
+            batch_size=global_config['batch_size'], 
+            shuffle=True
+        )
+        
         logging.info(f"Starting training with configurations:")
-        logging.info(f"Model 1 kernels: {config1}")
-        logging.info(f"Model 2 kernels: {config2}")
+        logging.info(f"Global config: {global_config}")
+        logging.info(f"Model 1 kernels: {config1['kernels']}")
+        logging.info(f"Model 2 kernels: {config2['kernels']}")
         
-        model1_trainer = ModelTrainer(config1, "Model 1")
-        model2_trainer = ModelTrainer(config2, "Model 2")
+        model1_trainer = ModelTrainer(config1['kernels'], "Model 1", global_config)
+        model2_trainer = ModelTrainer(config2['kernels'], "Model 2", global_config)
         
-        for epoch in range(1, EPOCHS + 1):
-            logging.info(f"\nEpoch {epoch}/{EPOCHS}")
+        for epoch in range(1, global_config['epochs'] + 1):
+            logging.info(f"\nEpoch {epoch}/{global_config['epochs']}")
             
             # Train and test Model 1
             logging.info("Training Model 1...")
@@ -315,8 +336,8 @@ def train_models(config1, config2):
                 'batch': 'completed',
                 'loss': test_loss1,
                 'accuracy': accuracy1,
-                'progress': 100. * epoch / EPOCHS,
-                'kernel_config': config1
+                'progress': 100. * epoch / global_config['epochs'],
+                'kernel_config': config1['kernels']
             })
             
             save_training_status({
@@ -325,8 +346,8 @@ def train_models(config1, config2):
                 'batch': 'completed',
                 'loss': test_loss2,
                 'accuracy': accuracy2,
-                'progress': 100. * epoch / EPOCHS,
-                'kernel_config': config2
+                'progress': 100. * epoch / global_config['epochs'],
+                'kernel_config': config2['kernels']
             })
             
     except Exception as e:

@@ -71,5 +71,27 @@ def get_model_info(model_name):
     except FileNotFoundError:
         return {'error': 'Model information not available yet'}
 
+@app.route('/train', methods=['POST'])
+def train():
+    data = request.get_json()
+    
+    # Extract the new training parameters
+    optimizer = data.get('optimizer', 'adam')
+    batch_size = data.get('batch_size', 512)
+    epochs = data.get('epochs', 10)
+    
+    # Pass these parameters to your training function
+    training_config = {
+        'optimizer': optimizer,
+        'batch_size': batch_size,
+        'epochs': epochs,
+        # ... other existing config parameters ...
+    }
+    
+    # Update your training call
+    train_model(training_config)
+    
+    return jsonify({'status': 'success'})
+
 if __name__ == '__main__':
     app.run(debug=True, use_reloader=False)  # Disable reloader when using threads
