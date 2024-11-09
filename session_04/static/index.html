@@ -5,142 +5,232 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
+            margin: 0;
+            padding: 0;
             background-color: #f0f0f0;
+            display: flex;
         }
+        
+        /* Left Panel */
+        .left-panel {
+            width: 300px;
+            height: 100vh;
+            background-color: white;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            position: fixed;
+            left: 0;
+            overflow-y: auto;
+        }
+        
+        /* Main Content */
+        .main-content {
+            margin-left: 320px;
+            padding: 20px;
+            flex-grow: 1;
+        }
+        
         .container {
             max-width: 1200px;
-            margin: 0 auto;
             background-color: white;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
+        
         .status-box {
             background-color: #e9ecef;
             padding: 15px;
             border-radius: 5px;
             margin-bottom: 20px;
         }
+        
         .plot-container {
             text-align: center;
             margin: 20px 0;
         }
+        
         .samples-container {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
             gap: 10px;
             margin-top: 20px;
         }
+        
         .sample-box {
             text-align: center;
             padding: 10px;
             background-color: #f8f9fa;
             border-radius: 5px;
         }
+        
         .sample-box img {
             width: 100px;
             height: 100px;
         }
-        .correct {
-            color: green;
-        }
-        .incorrect {
-            color: red;
-        }
+        
+        .correct { color: green; }
+        .incorrect { color: red; }
+        
+        /* Model Configuration Styles */
         .model-config {
-            margin: 20px 0;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
+            margin-bottom: 20px;
         }
+        
         .config-form {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 15px;
         }
+        
         .model-input {
             display: flex;
+            flex-direction: column;
             gap: 10px;
-            align-items: center;
         }
+        
+        .model-input h3 {
+            margin: 0;
+            font-size: 1em;
+            color: #333;
+        }
+        
+        .kernel-inputs {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        
+        .kernel-input {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .kernel-input label {
+            font-size: 0.8em;
+            color: #666;
+        }
+        
         .model-input input {
-            width: 60px;
+            width: 100%;
             padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
+        
         button {
-            padding: 10px 20px;
+            padding: 12px 20px;
             background-color: #007bff;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s;
         }
+        
         button:hover {
             background-color: #0056b3;
         }
+        
         .model-status-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 20px;
             margin-bottom: 20px;
         }
+        
         .kernel-config {
             margin-top: 10px;
             font-family: monospace;
+            font-size: 0.9em;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>MNIST Training Monitor</h1>
-        
-        <div class="model-status-container">
-            <div class="status-box">
-                <h2>Model 1 Status</h2>
-                <div id="status1">Waiting for training to start...</div>
-                <div class="kernel-config">
-                    <p>Kernels: <span id="config1"></span></p>
-                </div>
-            </div>
-            <div class="status-box">
-                <h2>Model 2 Status</h2>
-                <div id="status2">Waiting for training to start...</div>
-                <div class="kernel-config">
-                    <p>Kernels: <span id="config2"></span></p>
-                </div>
-            </div>
-        </div>
-
-        <div class="plot-container">
-            <h2>Training Progress</h2>
-            <img id="plot" style="max-width: 100%;" />
-        </div>
-
-        <div id="samples">
-            <h2>Test Samples</h2>
-            <div class="samples-container" id="samples-grid"></div>
-        </div>
-    </div>
-
-    <div class="model-config">
+    <!-- Left Panel -->
+    <div class="left-panel">
         <h2>Model Configuration</h2>
         <div class="config-form">
             <div class="model-input">
                 <h3>Model 1 Kernels</h3>
-                <input type="number" id="m1k1" value="32" min="1" max="128">
-                <input type="number" id="m1k2" value="64" min="1" max="128">
-                <input type="number" id="m1k3" value="64" min="1" max="128">
-                <input type="number" id="m1k4" value="64" min="1" max="128">
+                <div class="kernel-inputs">
+                    <div class="kernel-input">
+                        <label>Kernel 1</label>
+                        <input type="number" id="m1k1" value="32" min="1" max="128">
+                    </div>
+                    <div class="kernel-input">
+                        <label>Kernel 2</label>
+                        <input type="number" id="m1k2" value="64" min="1" max="128">
+                    </div>
+                    <div class="kernel-input">
+                        <label>Kernel 3</label>
+                        <input type="number" id="m1k3" value="64" min="1" max="128">
+                    </div>
+                    <div class="kernel-input">
+                        <label>Kernel 4</label>
+                        <input type="number" id="m1k4" value="64" min="1" max="128">
+                    </div>
+                </div>
             </div>
+            
             <div class="model-input">
                 <h3>Model 2 Kernels</h3>
-                <input type="number" id="m2k1" value="16" min="1" max="128">
-                <input type="number" id="m2k2" value="32" min="1" max="128">
-                <input type="number" id="m2k3" value="32" min="1" max="128">
-                <input type="number" id="m2k4" value="32" min="1" max="128">
+                <div class="kernel-inputs">
+                    <div class="kernel-input">
+                        <label>Kernel 1</label>
+                        <input type="number" id="m2k1" value="16" min="1" max="128">
+                    </div>
+                    <div class="kernel-input">
+                        <label>Kernel 2</label>
+                        <input type="number" id="m2k2" value="32" min="1" max="128">
+                    </div>
+                    <div class="kernel-input">
+                        <label>Kernel 3</label>
+                        <input type="number" id="m2k3" value="32" min="1" max="128">
+                    </div>
+                    <div class="kernel-input">
+                        <label>Kernel 4</label>
+                        <input type="number" id="m2k4" value="32" min="1" max="128">
+                    </div>
+                </div>
             </div>
             <button onclick="startTraining()">Start Training</button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="container">
+            <h1>MNIST Training Monitor</h1>
+            
+            <div class="model-status-container">
+                <div class="status-box">
+                    <h2>Model 1 Status</h2>
+                    <div id="status1">Waiting for training to start...</div>
+                    <div class="kernel-config">
+                        <p>Kernels: <span id="config1"></span></p>
+                    </div>
+                </div>
+                <div class="status-box">
+                    <h2>Model 2 Status</h2>
+                    <div id="status2">Waiting for training to start...</div>
+                    <div class="kernel-config">
+                        <p>Kernels: <span id="config2"></span></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="plot-container">
+                <h2>Training Progress</h2>
+                <img id="plot" style="max-width: 100%;" />
+            </div>
+
+            <div id="samples">
+                <h2>Test Samples</h2>
+                <div class="samples-container" id="samples-grid"></div>
+            </div>
         </div>
     </div>
 
