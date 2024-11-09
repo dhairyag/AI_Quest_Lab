@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MNIST Training Monitor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .status-box {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .plot-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .samples-container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .sample-box {
+            text-align: center;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .sample-box img {
+            width: 100px;
+            height: 100px;
+        }
+        .correct {
+            color: green;
+        }
+        .incorrect {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MNIST Training Monitor</h1>
+        
+        <div class="status-box">
+            <h2>Training Status</h2>
+            <div id="status">Waiting for training to start...</div>
+        </div>
+
+        <div class="plot-container">
+            <h2>Training Progress</h2>
+            <img id="plot" style="max-width: 100%;" />
+        </div>
+
+        <div id="samples">
+            <h2>Test Samples</h2>
+            <div class="samples-container" id="samples-grid"></div>
+        </div>
+    </div>
+
+    <script>
+        function updateStatus() {
+            fetch('/training_status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById('status').textContent = data.error;
+                    } else {
+                        document.getElementById('status').innerHTML = `
+                            Epoch: ${data.epoch}<br>
+                            Batch: ${data.batch}<br>
+                            Loss: ${data.loss.toFixed(4)}<br>
+                            Progress: ${data.progress.toFixed(1)}%
+                        `;
+                    }
+                });
+        }
+
+        function updatePlot() {
+            fetch('/plot')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.plot) {
+                        document.getElementById('plot').src = 'data:image/png;base64,' + data.plot;
+                    }
+                });
+        }
+
+        function updateTestSamples() {
+            fetch('/test_samples')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.error) {
+                        const grid = document.getElementById('samples-grid');
+                        grid.innerHTML = '';
+                        data.forEach(sample => {
+                            const div = document.createElement('div');
+                            div.className = 'sample-box';
+                            const correct = sample.predicted === sample.actual;
+                            div.innerHTML = `
+                                <img src="data:image/png;base64,${sample.image}" />
+                                <p class="${correct ? 'correct' : 'incorrect'}">
+                                    Predicted: ${sample.predicted}<br>
+                                    Actual: ${sample.actual}
+                                </p>
+                            `;
+                            grid.appendChild(div);
+                        });
+                    }
+                });
+        }
+
+        // Update status every second
+        setInterval(updateStatus, 1000);
+        // Update plot every 5 seconds
+        setInterval(updatePlot, 5000);
+        // Check for test samples every 5 seconds
+        setInterval(updateTestSamples, 5000);
+    </script>
+</body>
+</html> 
