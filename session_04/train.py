@@ -66,68 +66,6 @@ criterion = nn.CrossEntropyLoss()
 # Training history
 history = {'train_loss': [], 'test_accuracy': []}
 
-def train_epoch(epoch, pbar):
-    model.train()
-    total_loss = 0
-    correct = 0
-    total = 0
-    
-    for batch_idx, (data, target) in enumerate(train_loader):
-        data, target = data.to(device), target.to(device)
-        optimizer.zero_grad()
-        output = model(data)
-        loss = criterion(output, target)
-        loss.backward()
-        optimizer.step()
-        total_loss += loss.item()
-        
-        # Calculate accuracy for this batch
-        pred = output.argmax(dim=1, keepdim=True)
-        correct += pred.eq(target.view_as(pred)).sum().item()
-        total += len(data)
-        current_acc = 100. * correct / total
-        
-        # Update progress bar
-        pbar.update(1)
-        pbar.set_postfix({
-            'epoch': f'{epoch}/{EPOCHS}',
-            'loss': f'{loss.item():.4f}',
-            'acc': f'{current_acc:.2f}%'
-        })
-        
-        if batch_idx % 10 == 0:  # Reduced frequency of status updates
-            # Save current training status
-            with open('static/training_status.json', 'w') as f:
-                json.dump({
-                    'epoch': epoch,
-                    'batch': batch_idx,
-                    'loss': loss.item(),
-                    'accuracy': current_acc,
-                    'progress': 100. * ((epoch-1) * len(train_loader) + batch_idx) / (EPOCHS * len(train_loader))
-                }, f)
-    
-    avg_loss = total_loss / len(train_loader)
-    final_acc = 100. * correct / total
-    history['train_loss'].append(avg_loss)
-    return avg_loss, final_acc
-
-def test():
-    model.eval()
-    test_loss = 0
-    correct = 0
-    with torch.no_grad():
-        for data, target in test_loader:
-            data, target = data.to(device), target.to(device)
-            output = model(data)
-            test_loss += criterion(output, target).item()
-            pred = output.argmax(dim=1, keepdim=True)
-            correct += pred.eq(target.view_as(pred)).sum().item()
-
-    test_loss /= len(test_loader)
-    accuracy = 100. * correct / len(test_loader.dataset)
-    history['test_accuracy'].append(accuracy)
-    return test_loss, accuracy
-
 def save_loss_plot():
     plt.figure(figsize=(10, 5))
     plt.subplot(1, 2, 1)
@@ -211,7 +149,12 @@ class ModelTrainer:
             'test_accuracy': [],
             'kernel_config': kernel_config
         }
-
+        
+        # Get model information
+        self.model_info = self.get_model_info()
+        # Save initial model info
+        self.save_model_info()
+    
     def train_epoch(self, epoch):
         self.model.train()
         total_loss = 0
@@ -242,14 +185,15 @@ class ModelTrainer:
                     'batch': batch_idx,
                     'loss': loss.item(),
                     'accuracy': current_acc,
-                    'progress': 100. * batch_idx / len(train_loader),
+                    'progress': 100. * ((epoch-1) * len(train_loader) + batch_idx) / (EPOCHS * len(train_loader)),
                     'kernel_config': self.history['kernel_config']
                 }
                 save_training_status(status)
                 
         avg_loss = total_loss / len(train_loader)
         self.history['train_loss'].append(avg_loss)
-        
+        return avg_loss, 100. * correct / total
+    
     def test(self):
         self.model.eval()
         test_loss = 0
@@ -265,20 +209,34 @@ class ModelTrainer:
 
         test_loss /= len(test_loader)
         accuracy = 100. * correct / len(test_loader.dataset)
-        
-        # Store the results in history
         self.history['test_accuracy'].append(accuracy)
-        
-        # Save current test status
-        status = {
-            'model': self.model_name,
-            'test_loss': test_loss,
-            'test_accuracy': accuracy
-        }
-        with open(f'static/test_status_{self.model_name}.json', 'w') as f:
-            json.dump(status, f)
-            
         return test_loss, accuracy
+    
+    def get_model_info(self):
+        """Get model architecture information"""
+        info = {
+            'name': self.model_name,
+            'kernels': self.history['kernel_config'],
+            'layers': [],
+            'total_params': sum(p.numel() for p in self.model.parameters())
+        }
+        
+        # Get layer information
+        for name, layer in self.model.named_children():
+            if isinstance(layer, (nn.Conv2d, nn.Linear)):
+                layer_info = {
+                    'name': name,
+                    'type': layer.__class__.__name__,
+                    'shape': list(layer.weight.shape)
+                }
+                info['layers'].append(layer_info)
+        
+        return info
+    
+    def save_model_info(self):
+        """Save model information to file"""
+        with open(f'static/model_info_{self.model_name}.json', 'w') as f:
+            json.dump(self.model_info, f)
 
 def save_comparison_plot():
     try:

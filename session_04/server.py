@@ -63,5 +63,13 @@ def start_training():
     
     return jsonify({'status': 'Training started'})
 
+@app.route('/model_info/<model_name>')
+def get_model_info(model_name):
+    try:
+        with open(f'static/model_info_{model_name}.json', 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {'error': 'Model information not available yet'}
+
 if __name__ == '__main__':
     app.run(debug=True, use_reloader=False)  # Disable reloader when using threads

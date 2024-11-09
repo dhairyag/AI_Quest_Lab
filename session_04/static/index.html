@@ -172,6 +172,39 @@
             grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
             gap: 10px;
         }
+        
+        .model-info {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .model-info h3 {
+            margin: 0 0 15px 0;
+            font-size: 1em;
+            color: #333;
+        }
+        
+        .model-info-content {
+            font-size: 0.85em;
+            font-family: monospace;
+        }
+        
+        .model-info-content h4 {
+            margin: 10px 0 5px 0;
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .model-info-content pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background-color: #f8f9fa;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
@@ -223,6 +256,19 @@
                 </div>
             </div>
             <button onclick="startTraining()">Start Training</button>
+        </div>
+        <div class="model-info">
+            <h3>Model Information</h3>
+            <div class="model-info-content">
+                <div id="model1-info">
+                    <h4>Model 1</h4>
+                    <pre id="model1-params">Waiting for training to start...</pre>
+                </div>
+                <div id="model2-info">
+                    <h4>Model 2</h4>
+                    <pre id="model2-params">Waiting for training to start...</pre>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -387,9 +433,40 @@
             });
         }
 
+        function updateModelInfo() {
+            // Update Model 1 info
+            fetch('/model_info/Model 1')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.error) {
+                        const info = `Total Parameters: ${(data.total_params/1000000).toFixed(2)}M\n\nLayers:\n${
+                            data.layers.map(layer => 
+                                `${layer.name} (${layer.type})\n  Shape: ${layer.shape.join(' × ')}`
+                            ).join('\n\n')
+                        }`;
+                        document.getElementById('model1-params').textContent = info;
+                    }
+                });
+            
+            // Update Model 2 info
+            fetch('/model_info/Model 2')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.error) {
+                        const info = `Total Parameters: ${(data.total_params/1000000).toFixed(2)}M\n\nLayers:\n${
+                            data.layers.map(layer => 
+                                `${layer.name} (${layer.type})\n  Shape: ${layer.shape.join(' × ')}`
+                            ).join('\n\n')
+                        }`;
+                        document.getElementById('model2-params').textContent = info;
+                    }
+                });
+        }
+
         setInterval(updateStatus, 500);
         setInterval(updatePlot, 2000);
         setInterval(updateTestSamples, 5000);
+        setInterval(updateModelInfo, 2000);
     </script>
 </body>
 </html> 
