@@ -1,5 +1,7 @@
-from flask import Flask, send_from_directory
+from flask import Flask, send_from_directory, request, jsonify
 import json
+from threading import Thread
+from train import train_models  # Import the train_models function
 
 app = Flask(__name__)
 
@@ -14,10 +16,23 @@ def send_static(path):
 @app.route('/training_status')
 def training_status():
     try:
-        with open('static/training_status.json', 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {'error': 'Training has not started yet'}
+        # Try to read both model statuses
+        status = {}
+        try:
+            with open('static/training_status_Model 1.json', 'r') as f:
+                status['model1'] = json.load(f)
+        except FileNotFoundError:
+            status['model1'] = {'error': 'Model 1 training has not started yet'}
+            
+        try:
+            with open('static/training_status_Model 2.json', 'r') as f:
+                status['model2'] = json.load(f)
+        except FileNotFoundError:
+            status['model2'] = {'error': 'Model 2 training has not started yet'}
+            
+        return status
+    except Exception as e:
+        return {'error': str(e)}
 
 @app.route('/plot')
 def get_plot():
@@ -35,5 +50,18 @@ def get_test_samples():
     except FileNotFoundError:
         return {'error': 'No test samples available yet'}
 
+@app.route('/start_training', methods=['POST'])
+def start_training():
+    data = request.json
+    config1 = data['config1']
+    config2 = data['config2']
+    
+    # Start training in a separate thread
+    thread = Thread(target=train_models, args=(config1, config2))
+    thread.daemon = True  # Make thread daemon so it dies when main thread dies
+    thread.start()
+    
+    return jsonify({'status': 'Training started'})
+
 if __name__ == '__main__':
-    app.run(debug=True) 
+    app.run(debug=True, use_reloader=False)  # Disable reloader when using threads

@@ -3,15 +3,16 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class MNISTNet(nn.Module):
-    def __init__(self):
+    def __init__(self, kernel_config=[32, 64, 64, 64]):
         super(MNISTNet, self).__init__()
-        self.conv1 = nn.Conv2d(1, 32, 3, 1)
-        self.conv2 = nn.Conv2d(32, 64, 3, 1)
-        self.conv3 = nn.Conv2d(64, 64, 3, 1)
-        self.conv4 = nn.Conv2d(64, 64, 3, 1)
+        self.conv1 = nn.Conv2d(1, kernel_config[0], 3, 1)
+        self.conv2 = nn.Conv2d(kernel_config[0], kernel_config[1], 3, 1)
+        self.conv3 = nn.Conv2d(kernel_config[1], kernel_config[2], 3, 1)
+        self.conv4 = nn.Conv2d(kernel_config[2], kernel_config[3], 3, 1)
+        fc1_input = kernel_config[3] * 4 * 4  # Calculate based on input size and operations
         self.dropout1 = nn.Dropout2d(0.25)
         self.dropout2 = nn.Dropout2d(0.5)
-        self.fc1 = nn.Linear(1024, 128)
+        self.fc1 = nn.Linear(fc1_input, 128)
         self.fc2 = nn.Linear(128, 10)
 
     def forward(self, x):
