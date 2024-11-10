@@ -501,6 +501,15 @@
         }
 
         function startTraining() {
+            // Clear existing plots and sample images
+            document.getElementById('plot').src = '';
+            document.getElementById('samples-grid-1').innerHTML = '';
+            document.getElementById('samples-grid-2').innerHTML = '';
+            document.getElementById('model1-params').textContent = 'Waiting for training to start...';
+            document.getElementById('model2-params').textContent = 'Waiting for training to start...';
+            document.getElementById('status1').textContent = 'Training started...';
+            document.getElementById('status2').textContent = 'Training started...';
+
             const config1 = {
                 kernels: [
                     parseInt(document.getElementById('m1k1').value),
