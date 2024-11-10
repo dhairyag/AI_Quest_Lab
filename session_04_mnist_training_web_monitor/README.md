@@ -128,8 +128,3 @@ Contributions are welcome! Please fork the repository and submit a pull request 
   - Live loss/accuracy plots
   - Test sample predictions
 - Auto-refreshing metrics (3-second intervals)
-
-### Data Flow
-
-
-
