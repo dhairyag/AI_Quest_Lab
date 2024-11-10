@@ -2,18 +2,19 @@
 
 A real-time web-based monitoring system for training Convolutional Neural Networks (CNNs) on the MNIST dataset. This system provides live updates on training progress, loss curves, and sample predictions through an intuitive web interface.
 
+Coding Tool: Cursor
+
 ## Table of Contents
 
-- [Features](#features)
 - [Demo Screenshot](#demo-screenshot)
+- [Features](#features)
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Hardware Requirements](#hardware-requirements)
 - [Customization](#customization)
 - [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
+- [Technical Details](#technical-details)
 
 ## Demo Screenshot
 
@@ -27,6 +28,7 @@ A real-time web-based monitoring system for training Convolutional Neural Networ
 - **Model Information**: Detailed information about each model's architecture and total parameters.
 - **Configurable Training Settings**: Adjust model configurations, optimizer choices, batch size, epochs, and learning rate through the web interface.
 - **Automatic Cleanup**: Removes old training artifacts to ensure the system remains up-to-date and storage-efficient.
+
 
 ## Requirements
 
@@ -86,5 +88,48 @@ A real-time web-based monitoring system for training Convolutional Neural Networ
 ## Contributing
 
 Contributions are welcome! Please fork the repository and submit a pull request with your enhancements.
+
+## Technical Details
+
+### Key Components
+
+#### `model.py`
+- Implements `MNISTNet` CNN architecture
+- 4 configurable convolutional layers (3x3 kernels)
+- 2 fully connected layers
+- Dropout for regularization
+- Configurable kernel sizes: [32,64,64,64] or [16,32,32,32]
+
+#### `train.py`
+- Manages training lifecycle and data handling
+- Features:
+  - MNIST dataset loading and preprocessing
+  - Training/validation split
+  - Batch processing
+  - Loss calculation (CrossEntropyLoss)
+  - Optimizer management (Adam/SGD)
+  - Real-time metrics logging
+  - Model checkpointing
+
+#### `server.py`
+- Flask-based web server (port 5000)
+- Endpoints:
+  - `/`: Serves main monitoring interface
+  - `/training_status`: Returns current training metrics
+  - `/static/<path>`: Serves static files
+- Handles JSON-based communication
+- Automatic cleanup of old training files
+
+#### Web Interface (`static/index.html`)
+- Real-time training visualization
+- Interactive components:
+  - Model configuration
+  - Training parameter adjustment
+  - Live loss/accuracy plots
+  - Test sample predictions
+- Auto-refreshing metrics (3-second intervals)
+
+### Data Flow
+
 
 
