@@ -33,3 +33,12 @@ This project implements a custom Convolutional Neural Network (CNN) architecture
 
 ### 9. [ImageNet1k Classification with ResNet50](https://github.com/dhairyag/ImageNet1k_ResNet50) (repo)
 PyTorch implementation of ResNet50 training on ImageNet1000, with a focus on cloud deployment using AWS EC2. The project achieves 70% accuracy after 64 epochs using a `g4dn.2xlarge` instance with a NVIDIA T4 GPU. It includes comprehensive features like distributed training, mixed precision, and various optimizations, along with detailed performance monitoring and visualization of training metrics.
+
+### 10. [NanoGPT Training Implementation](https://github.com/dhairyag/ShakespeareGPT-Forge) (repo)
+A PyTorch implementation of GPT-2 style transformer with modern training optimizations. This implementation follows the architecture described in the GPT-2 paper while incorporating various performance enhancements for efficient training.
+
+### 11. [SmolLM2: Implementation from the ground up](https://github.com/dhairyag/SmolLM2_GroundUp) (repo)
+This repository contains a PyTorch implementation of the SmolLM2 language model, a compact transformer-based model with grouped-query attention, designed for efficient natural language processing. Built from the ground up through reverse engineering, this implementation closely follows the architecture described in the model's Hugging Face specifications, primarily based on the model's Hugging Face model card (hf_model.md) and configuration files (config_smollm2_135M.yaml).
+
+### 12. [LLM Docker Microservices](https://github.com/dhairyag/docker_LLM_microservices) (repo)
+A containerized deployment of SmolLM2 language model using a microservices architecture. The project demonstrates Docker container communication with one container serving the model and another handling user interactions.
